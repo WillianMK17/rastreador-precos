@@ -12,6 +12,26 @@ document.addEventListener('DOMContentLoaded', () => {
   renderStock();
 });
 
+// Viewport Device Mode Switcher (Computador, Tablet, Celular)
+window.setViewportMode = function(mode) {
+  const container = document.getElementById('app-container');
+  if (!container) return;
+
+  ['mode-mobile', 'mode-tablet', 'mode-desktop'].forEach(cls => container.classList.remove(cls));
+
+  ['dev-btn-auto', 'dev-btn-desktop', 'dev-btn-tablet', 'dev-btn-mobile'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+
+  const activeBtn = document.getElementById('dev-btn-' + mode);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  if (mode !== 'auto') {
+    container.classList.add('mode-' + mode);
+  }
+};
+
 // Navigation Function
 const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock'];
 
