@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Navigation Function
-const screens = ['home','consent','scan','manual','history','compare','list','list-result','stock'];
+const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock'];
 
 window.go = function(id) {
   screens.forEach(s => {
@@ -25,7 +25,7 @@ window.go = function(id) {
   if (target) target.classList.add('active');
 
   // Active Tab Highlight
-  ['home','scan','history','list','stock'].forEach(t => {
+  ['landing','home','scan','history','list','stock','auth'].forEach(t => {
     const tabEl = document.getElementById('tab-' + t);
     if (tabEl) tabEl.classList.remove('active');
   });
@@ -37,11 +37,13 @@ window.go = function(id) {
 
   // Trigger camera scanner when entering scan screen
   if (id === 'scan') {
-    window.ScannerModule.startCameraScanner('qr-reader', (data) => {
-      window.ScannerModule.handleReceiptParsed(data);
-    });
+    if (window.ScannerModule) {
+      window.ScannerModule.startCameraScanner('qr-reader', (data) => {
+        window.ScannerModule.handleReceiptParsed(data);
+      });
+    }
   } else {
-    window.ScannerModule.stopScanner();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
   }
 };
 
@@ -66,6 +68,45 @@ function updateThemeIcon(theme) {
     label.textContent = theme === 'light' ? '☀️ Claro' : '🌙 Escuro';
   }
 }
+
+// Auth Tab Switching ("login" vs "register")
+window.switchAuthTab = function(mode) {
+  const tabLogin = document.getElementById('auth-tab-login');
+  const tabRegister = document.getElementById('auth-tab-register');
+  const formLogin = document.getElementById('auth-form-login');
+  const formRegister = document.getElementById('auth-form-register');
+  const msg = document.getElementById('auth-message');
+
+  if (msg) msg.style.display = 'none';
+
+  if (mode === 'login') {
+    if (tabLogin) tabLogin.classList.add('active');
+    if (tabRegister) tabRegister.classList.remove('active');
+    if (formLogin) formLogin.style.display = 'block';
+    if (formRegister) formRegister.style.display = 'none';
+  } else {
+    if (tabRegister) tabRegister.classList.add('active');
+    if (tabLogin) tabLogin.classList.remove('active');
+    if (formRegister) formRegister.style.display = 'block';
+    if (formLogin) formLogin.style.display = 'none';
+  }
+};
+
+// Auth Submit Handlers
+window.handleEmailLogin = function(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  window.AuthModule.loginWithEmail(email, pass);
+};
+
+window.handleEmailRegister = function(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const pass = document.getElementById('reg-pass').value;
+  window.AuthModule.registerWithEmail(name, email, pass);
+};
 
 // LGPD Fixed Banner Controller
 function initLGPD() {
@@ -97,15 +138,6 @@ window.stockAdjust = function(btn, delta) {
   const item = window.AppState.stock.find(s => s.id === id);
   if (item) {
     item.qty = qty;
-    window.saveState();
-  }
-};
-
-window.emptyStockItem = function(id) {
-  const item = window.AppState.stock.find(s => s.id === id);
-  if (item) {
-    item.qty = 0;
-    renderStock();
     window.saveState();
   }
 };
