@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rastreador de Preços — AugeFW</title>
+  
+  <!-- Favicon & App ID Metadados -->
+  <link rel="icon" href="logo.png" type="image/png">
+  <meta name="app-id" content="br.com.willian.rastreadorprecos">
+  <meta name="author" content="AugeFW - augefw.com">
+  <meta name="description" content="Rastreador de preços de supermercados e inflação pessoal com escaneamento de cupons fiscais e controle de estoque.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Firebase SDKs v10 compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- HTML5 QR Code Camera Scanner -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+
+  <!-- Phone Container Wrapper -->
+  <div class="phone-container">
+    
+    <!-- Header & Statusbar -->
+    <div class="statusbar">
+      <div class="brand-header">
+        <img src="logo.png" alt="AugeFW Logo" class="brand-logo-img">
+        <span class="brand-name">AUGEFW</span>
+      </div>
+      <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Alternar Tema">
+        <span id="theme-toggle-label">🌙 Escuro</span>
+      </button>
+    </div>
+
+    <!-- ===== SCREEN 1: HOME ===== -->
+    <div class="screen active" id="home">
+      <div class="eyebrow">Este mês · Inflação Pessoal</div>
+      <h1 class="big-title">Gasto Total</h1>
+      <div class="total-num">R$ 1.284,60</div>
+      <div class="subtitle">Valor total pago em cupons salvos na nuvem Firebase</div>
+
+      <div class="index-box">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div class="eyebrow" style="margin:0;">Índice de Preço Pessoal</div>
+            <div class="index-val">+4,7%</div>
+          </div>
+          <span class="trend-pill">▲ acima da média</span>
+        </div>
+        <div class="subtitle" style="margin:8px 0 0; font-size:12px;">Variação real de preço dos itens de recompra sem considerar volume.</div>
+      </div>
+
+      <div class="receipt-card" style="margin-top:16px;">
+        <div class="eyebrow" style="margin:0 0 8px;">🔔 Oportunidade na região</div>
+        <div style="font-size:13.5px; line-height:1.4;">
+          <b>Óleo de soja 900ml</b> caiu de preço no Assaí Atacadista agora. Vale a pena estocar.
+        </div>
+      </div>
+
+      <div class="eyebrow">Subindo mais rápido</div>
+      <div class="receipt-card">
+        <div class="item-row">
+          <div>
+            <div class="item-name">Arroz Tio João 5kg</div>
+            <div class="item-meta">Extra Supermercados · R$ 5,78/kg</div>
+          </div>
+          <div class="item-change">▲ 12,4%</div>
+        </div>
+        <div class="item-row">
+          <div>
+            <div class="item-name">Gasolina comum</div>
+            <div class="item-meta">Posto Ipiranga · R$ 6,29/l</div>
+          </div>
+          <div class="item-change">▲ 6,8%</div>
+        </div>
+        <div class="item-row">
+          <div>
+            <div class="item-name">Óleo de soja 900ml</div>
+            <div class="item-meta">Assaí Atacadista · R$ 10,44/l</div>
+          </div>
+          <div class="item-change">▲ 9,0% <span style="color:var(--accent-gold); font-size:10px;">(reduflação 900ml)</span></div>
+        </div>
+      </div>
+
+      <button class="btn-cta" onclick="go('consent')">
+        <span class="pulsing-dot"></span>
+        Escanear Cupom Fiscal (NFC-e)
+      </button>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 2: LGPD CONSENT ===== -->
+    <div class="screen" id="consent">
+      <div class="eyebrow">Privacidade & LGPD</div>
+      <h1 class="big-title">Como usamos seus dados</h1>
+      <p class="subtitle">Conforme a LGPD, o salvamento das refeições e compras na nuvem exige seu aceite prévio.</p>
+
+      <div class="receipt-card">
+        <div class="item-row">
+          <div>
+            <div class="item-name">🛡️ Histórico Privado</div>
+            <div class="item-meta">Seu histórico de preços fica salvo com segurança no Firebase Firestore só pra você.</div>
+          </div>
+        </div>
+        <div class="item-row">
+          <div>
+            <div class="item-name">📊 Comparação Anônima</div>
+            <div class="item-meta">Para exibir o preço de outros mercados na cidade, seu CPF e dados pessoais são 100% omitidos.</div>
+          </div>
+        </div>
+        <div class="item-row">
+          <div>
+            <div class="item-name">🗑️ Direito de Exclusão</div>
+            <div class="item-meta">Você pode apagar todo seu histórico a qualquer momento.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto; padding-top:14px;">
+        <label style="display:flex; gap:10px; align-items:flex-start; font-size:12px; color:var(--text-muted); cursor:pointer;">
+          <input type="checkbox" id="consent-check" style="accent-color:var(--accent-gold); margin-top:2px;" onchange="document.getElementById('consent-btn').toggleAttribute('disabled', !this.checked)">
+          Li e aceito a política de privacidade e o salvamento em nuvem.
+        </label>
+        <button class="btn-cta" id="consent-btn" disabled style="margin-top:14px;" onclick="go('scan')">
+          Aceitar e Abrir Scanner
+        </button>
+      </div>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 3: SCANNER ===== -->
+    <div class="screen" id="scan">
+      <div class="scan-area">
+        <div class="viewfinder-box">
+          <div class="corner-tl viewfinder-corner"></div>
+          <div class="corner-tr viewfinder-corner"></div>
+          <div class="corner-bl viewfinder-corner"></div>
+          <div class="corner-br viewfinder-corner"></div>
+          <div class="laser-line"></div>
+          <div id="qr-reader"></div>
+        </div>
+        <h2 class="big-title" style="font-size:18px;">Aponte para o QR Code</h2>
+        <p class="subtitle" style="text-align:center; max-width:280px; margin-top:4px;">
+          Escaneie o QR Code da NFC-e de mercado ou posto. Os itens entram sozinhos no seu histórico.
+        </p>
+
+        <button style="background:none; border:none; color:var(--accent-gold); font-family:var(--font-mono); font-size:12.5px; cursor:pointer; text-decoration:underline;" onclick="go('manual')">
+          ou lançar manualmente →
+        </button>
+
+        <div class="notice-box">
+          🔒 Leitura protegida por criptografia de ponta a ponta
+        </div>
+      </div>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 4: MANUAL ENTRY ===== -->
+    <div class="screen" id="manual">
+      <button style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; cursor:pointer; margin-bottom:12px;" onclick="go('scan')">← voltar ao scanner</button>
+      <div class="eyebrow">Lançamento Manual</div>
+      <h1 class="big-title">O que você comprou?</h1>
+      <p class="subtitle">Para feiras, farmácias e compras sem QR Code.</p>
+
+      <div class="receipt-card">
+        <div class="item-row">
+          <input type="text" placeholder="Nome do produto (ex: Arroz 5kg)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
+        </div>
+        <div class="item-row">
+          <input type="number" step="0.01" placeholder="Valor pago (R$ 0,00)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
+        </div>
+        <div class="item-row">
+          <input type="text" placeholder="Nome do estabelecimento" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
+        </div>
+      </div>
+
+      <button class="btn-cta" onclick="alert('Item salvo no histórico!'); go('history');">Salvar no Histórico</button>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 5: HISTORY ===== -->
+    <div class="screen" id="history">
+      <div class="eyebrow">Histórico do Item</div>
+      <h1 class="big-title">Arroz Tio João 5kg</h1>
+      <p class="subtitle">6 compras registradas · 3 supermercados</p>
+
+      <div class="receipt-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">Preço atual · R$ 5,78/kg</div>
+            <div style="font-size:26px; font-family:var(--font-mono); font-weight:800; color:var(--text-main);">R$ 28,90</div>
+          </div>
+          <div style="text-align:right; font-family:var(--font-mono); font-size:12px; color:var(--price-up); font-weight:700;">
+            ▲ 12,4%<br><span style="color:var(--text-muted); font-weight:400;">últimos 6 meses</span>
+          </div>
+        </div>
+
+        <svg width="100%" height="70" viewBox="0 0 320 70" preserveAspectRatio="none" style="margin-top:14px;">
+          <polyline points="0,55 55,50 110,48 165,32 220,26 275,14 320,8" fill="none" stroke="var(--price-up)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="320" cy="8" r="4" fill="var(--price-up)"/>
+        </svg>
+      </div>
+
+      <button class="btn-cta" style="background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="go('compare')">
+        🔍 Ver preço em outros mercados de Ourinhos
+      </button>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 6: COMPARE ===== -->
+    <div class="screen" id="compare">
+      <button style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; cursor:pointer; margin-bottom:12px;" onclick="go('history')">← voltar ao histórico</button>
+      <div class="eyebrow">Comparar · Ourinhos, SP</div>
+      <h1 class="big-title">Arroz Tio João 5kg</h1>
+      <p class="subtitle">Preços confirmados por notas fiscais escaneadas na cidade</p>
+
+      <div class="receipt-card">
+        <div class="item-row">
+          <div>
+            <span class="badge-best">MAIS BARATO</span>
+            <div class="item-name">Assaí Atacadista</div>
+            <div class="item-meta">2,1 km · Centro</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-mono); font-weight:700; font-size:15px;">R$ 26,50</div>
+            <div style="font-size:10px; font-family:var(--font-mono); color:var(--price-down);">● atualizado há 2 dias</div>
+          </div>
+        </div>
+        <div class="item-row">
+          <div>
+            <div class="item-name">Pão de Açúcar</div>
+            <div class="item-meta">3,4 km · Jardim Europa</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-mono); font-weight:700; font-size:15px;">R$ 27,90</div>
+            <div style="font-size:10px; font-family:var(--font-mono); color:var(--price-down);">● atualizado há 4 dias</div>
+          </div>
+        </div>
+        <div class="item-row">
+          <div>
+            <div class="item-name">Extra Supermercados</div>
+            <div class="item-meta">1,3 km · Centro</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-mono); font-weight:700; font-size:15px;">R$ 28,90</div>
+            <div style="font-size:10px; font-family:var(--font-mono); color:var(--text-muted);">○ há 11 dias</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 7: SHOPPING LIST ===== -->
+    <div class="screen" id="list">
+      <div class="eyebrow">Lista de Compras · Ourinhos</div>
+      <h1 class="big-title">O que você precisa comprar?</h1>
+      <p class="subtitle">Cruzamos sua lista com o menor preço nos mercados da cidade.</p>
+
+      <div class="list-input-group">
+        <input type="text" id="list-input-field" class="list-input" placeholder="Ex: Macarrão 500g">
+        <button class="btn-add" onclick="addListItem()">+</button>
+      </div>
+
+      <div class="receipt-card" id="shopping-list-container">
+        <!-- Rendered dynamically via js/ui.js -->
+      </div>
+
+      <button class="btn-cta" onclick="go('list-result')">Otimizar e Comparar Mercados</button>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 8: LIST RESULT ===== -->
+    <div class="screen" id="list-result">
+      <button style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; cursor:pointer; margin-bottom:12px;" onclick="go('list')">← voltar à lista</button>
+      <div class="eyebrow">Resultado Otimizado</div>
+      <h1 class="big-title">Onde compensa comprar</h1>
+
+      <div class="receipt-card" style="border-color:var(--accent-gold);">
+        <div style="font-family:var(--font-mono); font-size:10.5px; color:var(--accent-gold); font-weight:700; text-transform:uppercase;">💡 Dica Inteligente</div>
+        <div style="font-size:13.5px; margin-top:4px;">
+          Vá só no <b>Assaí Atacadista</b>. Dividir a compra em 3 mercados economiza apenas <b>R$ 1,70</b> — não compensa o deslocamento.
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; margin:12px 0;">
+        <button class="theme-toggle-btn active" id="strat-single" style="flex:1; padding:10px; justify-content:center;" onclick="strategy('single')">Tudo em 1 mercado</button>
+        <button class="theme-toggle-btn" id="strat-split" style="flex:1; padding:10px; justify-content:center;" onclick="strategy('split')">Item por item</button>
+      </div>
+
+      <div id="single-view">
+        <div class="receipt-card">
+          <div class="item-row">
+            <div>
+              <span class="badge-best">MELHOR TOTAL</span>
+              <div class="item-name">Assaí Atacadista</div>
+              <div class="item-meta">4 de 4 itens confirmados</div>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:16px; font-weight:800;">R$ 47,80</div>
+          </div>
+          <div class="item-row">
+            <div>
+              <div class="item-name">Extra Supermercados</div>
+              <div class="item-meta">4 de 4 itens confirmados</div>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:16px; font-weight:800;">R$ 52,30</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="split-view" style="display:none;">
+        <div class="receipt-card">
+          <div class="item-row">
+            <div><div class="item-name">Tomate</div><div class="item-meta">Pão de Açúcar</div></div>
+            <div style="font-family:var(--font-mono); font-weight:700;">R$ 6,90</div>
+          </div>
+          <div class="item-row">
+            <div><div class="item-name">Cebola</div><div class="item-meta">Assaí Atacadista</div></div>
+            <div style="font-family:var(--font-mono); font-weight:700;">R$ 4,50</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN 9: PANTRY STOCK ===== -->
+    <div class="screen" id="stock">
+      <div class="eyebrow">Meu Estoque Doméstico</div>
+      <h1 class="big-title">O que você já tem em casa</h1>
+      <p class="subtitle">Cupons escaneados somam no estoque automaticamente.</p>
+
+      <div id="stock-container">
+        <!-- Rendered dynamically via js/ui.js -->
+      </div>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== BOTTOM TABBAR ===== -->
+    <div class="tabbar">
+      <button class="tab-btn active" id="tab-home" onclick="go('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+        INÍCIO
+      </button>
+      <button class="tab-btn" id="tab-list" onclick="go('list')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
+        LISTA
+      </button>
+      <button class="tab-btn" id="tab-stock" onclick="go('stock')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+        ESTOQUE
+      </button>
+      <button class="tab-btn" id="tab-scan" onclick="go('scan')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="3" width="6" height="6"/><rect x="15" y="3" width="6" height="6"/><rect x="3" y="15" width="6" height="6"/><path d="M15 15h6v6h-6z"/></svg>
+        SCANNER
+      </button>
+      <button class="tab-btn" id="tab-history" onclick="go('history')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg>
+        HISTÓRICO
+      </button>
+    </div>
+
+  </div>
+
+  <!-- FIXED LGPD BANNER (Rule 11) -->
+  <div class="lgpd-fixed-banner" id="lgpd-banner">
+    <div class="lgpd-text">
+      <b>Aviso de Privacidade LGPD:</b> Utilizamos armazenamento em nuvem (Firebase) e cookies locais para salvar seu histórico de refeições, cupons e estoque doméstico. Saiba mais em nossa <a href="#" onclick="go('consent')">Política de Privacidade</a>.
+    </div>
+    <button class="lgpd-btn" onclick="acceptLGPD()">Entendi e Aceitar</button>
+  </div>
+
+  <!-- App JavaScript Modules -->
+  <script src="js/app-config.js"></script>
+  <script src="js/firebase-init.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
