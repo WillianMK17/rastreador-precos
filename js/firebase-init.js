@@ -20,6 +20,17 @@
       console.warn("Firestore offline persistence state:", err.code);
     });
 
+    // Handle Google Auth Redirect Results
+    window.auth.getRedirectResult().then(result => {
+      if (result && result.user) {
+        showAuthMessage("Login com Google realizado com sucesso!", "success");
+        saveUserToFirestore(result.user);
+        setTimeout(() => { if (window.go) window.go('home'); }, 800);
+      }
+    }).catch(err => {
+      console.error("Auth redirect error:", err);
+    });
+
     // Monitor Auth State
     window.auth.onAuthStateChanged(user => {
       window.currentUser = user;
@@ -41,7 +52,7 @@ function updateUserUI(user) {
     if (userStatusEl) userStatusEl.textContent = displayName;
     if (userAvatarEl) {
       if (user.photoURL) {
-        userAvatarEl.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;">`;
+        userAvatarEl.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
       } else {
         userAvatarEl.textContent = displayName.charAt(0).toUpperCase();
       }
@@ -52,7 +63,7 @@ function updateUserUI(user) {
     `;
     if (logoutBtn) logoutBtn.style.display = 'block';
   } else {
-    if (userStatusEl) userStatusEl.textContent = "Entrar / Cadastrar";
+    if (userStatusEl) userStatusEl.textContent = "Entrar";
     if (userAvatarEl) userAvatarEl.textContent = "?";
     if (authNavBtn) authNavBtn.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -67,10 +78,15 @@ window.AuthModule = {
   // Google Sign-In
   loginWithGoogle: function() {
     if (!window.auth) {
-      showAuthMessage("Firebase não inicializado.", "error");
+      showAuthMessage("Firebase SDK não inicializado.", "error");
       return;
     }
     const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('email');
+    provider.addScope('profile');
+
+    showAuthMessage("Iniciando login com Google...", "success");
+
     window.auth.signInWithPopup(provider)
       .then(result => {
         showAuthMessage("Login com Google realizado com sucesso!", "success");
@@ -78,8 +94,18 @@ window.AuthModule = {
         setTimeout(() => { if (window.go) window.go('home'); }, 800);
       })
       .catch(error => {
-        console.error(error);
-        showAuthMessage("Erro no login com Google: " + error.message, "error");
+        console.error("Google Auth Error:", error);
+        
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+          showAuthMessage("Redirecionando para login seguro do Google...", "success");
+          window.auth.signInWithRedirect(provider);
+        } else if (error.code === 'auth/unauthorized-domain') {
+          showAuthMessage("Domínio não autorizado no Firebase Console. Por favor, adicione '" + window.location.hostname + "' em Firebase -> Authentication -> Settings -> Authorized Domains. Você também pode criar conta por E-mail abaixo.", "error");
+        } else if (error.code === 'auth/operation-not-allowed') {
+          showAuthMessage("O provedor Google precisa ser ativado em Firebase Console -> Authentication -> Sign-in method. Você pode criar conta por E-mail abaixo.", "error");
+        } else {
+          showAuthMessage("Erro no Google Sign-In (" + error.code + "): " + error.message + ". Experimente criar conta por E-mail e Senha abaixo.", "error");
+        }
       });
   },
 
@@ -96,7 +122,13 @@ window.AuthModule = {
       })
       .catch(error => {
         console.error(error);
-        showAuthMessage("E-mail ou senha inválidos.", "error");
+        if (error.code === 'auth/user-not-found') {
+          showAuthMessage("E-mail não cadastrado. Clique na aba 'Criar Nova Conta' acima para cadastrar.", "error");
+        } else if (error.code === 'auth/wrong-password') {
+          showAuthMessage("Senha incorreta. Tente novamente.", "error");
+        } else {
+          showAuthMessage("Erro no login: " + error.message, "error");
+        }
       });
   },
 
@@ -116,7 +148,11 @@ window.AuthModule = {
       })
       .catch(error => {
         console.error(error);
-        showAuthMessage("Erro ao criar conta: " + error.message, "error");
+        if (error.code === 'auth/email-already-in-use') {
+          showAuthMessage("Este e-mail já está cadastrado. Clique na aba 'Entrar na Conta'.", "error");
+        } else {
+          showAuthMessage("Erro ao criar conta: " + error.message, "error");
+        }
       });
   },
 
