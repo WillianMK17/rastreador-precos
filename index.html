@@ -14,7 +14,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
   
   <!-- Stylesheets -->
   <link rel="stylesheet" href="styles.css">
@@ -154,6 +154,12 @@
       <p class="subtitle">Seus cupons e histórico de preços sincronizados na nuvem em tempo real.</p>
 
       <div class="auth-box">
+        
+        <!-- Botão de Acesso Instantâneo 1-Click -->
+        <button class="btn-cta" onclick="AuthModule.loginAsGuest('Usuário Convidado')" style="background:var(--accent-gold); color:#121110; margin-bottom:16px; font-size:14px; padding:12px;">
+          ⚡ Entrar Instantaneamente (Sem Senha)
+        </button>
+
         <div class="auth-tabs">
           <button class="auth-tab-btn active" id="auth-tab-login" onclick="switchAuthTab('login')">Entrar na Conta</button>
           <button class="auth-tab-btn" id="auth-tab-register" onclick="switchAuthTab('register')">Criar Nova Conta</button>
