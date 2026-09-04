@@ -249,3 +249,11 @@ function showAuthMessage(msg, type) {
     el.className = 'auth-msg ' + type;
   }
 }
+
+function showScanMessage(msg, type) {
+  const el = document.getElementById('scan-message');
+  if (el) {
+    el.innerHTML = msg;
+    el.className = 'auth-msg ' + type;
+  }
+}

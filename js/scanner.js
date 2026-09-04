@@ -71,7 +71,7 @@ window.ScannerModule = {
         })
         .catch(err => {
           console.warn("Não foi possível ler QR Code na foto:", err);
-          showAuthMessage("Não conseguimos encontrar um QR Code nessa foto. Tente tirar mais de perto, com boa luz.", "error");
+          showScanMessage("Não conseguimos encontrar um QR Code nessa foto. Tente tirar mais de perto, com boa luz.", "error");
           this.startCameraScanner('qr-reader', (data) => this.handleReceiptParsed(data));
         });
     };
@@ -83,14 +83,14 @@ window.ScannerModule = {
     if (!file) return;
 
     await this.stopScanner();
-    showAuthMessage("Foto recebida! Lendo os itens do cupom com IA...", "success");
+    showScanMessage("Foto recebida! Lendo os itens do cupom com IA...", "success");
 
     let imageBase64;
     try {
       imageBase64 = await this._fileToBase64(file);
     } catch (err) {
       console.error("Erro ao ler a foto:", err);
-      showAuthMessage("Não conseguimos abrir essa foto. Tente novamente.", "error");
+      showScanMessage("Não conseguimos abrir essa foto. Tente novamente.", "error");
       return;
     }
 
@@ -104,12 +104,12 @@ window.ScannerModule = {
       apiResult = await response.json();
     } catch (err) {
       console.error("Erro ao enviar foto para leitura:", err);
-      showAuthMessage("Não conseguimos ler essa foto agora. Tente de novo ou lance manualmente.", "error");
+      showScanMessage("Não conseguimos ler essa foto agora. Tente de novo ou lance manualmente.", "error");
       return;
     }
 
     if (!apiResult || apiResult.ok !== true) {
-      showAuthMessage("Não conseguimos identificar um cupom fiscal nessa foto. Tente uma foto mais nítida ou lance manualmente.", "error");
+      showScanMessage("Não conseguimos identificar um cupom fiscal nessa foto. Tente uma foto mais nítida ou lance manualmente.", "error");
       return;
     }
 
@@ -128,14 +128,14 @@ window.ScannerModule = {
     try {
       await window.StoreModule.saveReceipt(receipt);
       window.StoreModule.addItemsToStock(receipt.items);
-      showAuthMessage("Cupom lido e registrado com sucesso!", "success");
+      showScanMessage("Cupom lido e registrado com sucesso!", "success");
       if (window.go) window.go('history');
     } catch (err) {
       if (err.message === 'not-authenticated') {
-        showAuthMessage("Entre com sua conta Google para guardar o histórico de cupons.", "error");
+        showScanMessage("Entre com sua conta Google para guardar o histórico de cupons.", "error");
       } else {
         console.error("Erro ao salvar cupom da foto:", err);
-        showAuthMessage("Cupom lido, mas houve um erro ao salvar.", "error");
+        showScanMessage("Cupom lido, mas houve um erro ao salvar.", "error");
       }
     }
   },
@@ -177,16 +177,16 @@ window.ScannerModule = {
     const chave = this.extractChaveFromQrUrl(qrCodeData);
 
     if (!chave) {
-      showAuthMessage("QR Code lido, mas não parece ser uma NFC-e válida.", "error");
+      showScanMessage("QR Code lido, mas não parece ser uma NFC-e válida.", "error");
       return;
     }
 
     if (!this.isSefazSpUrl(qrCodeData)) {
-      showAuthMessage("Por enquanto só conseguimos ler cupons de São Paulo. A chave " + chave + " foi identificada, mas os itens não puderam ser buscados.", "error");
+      showScanMessage("Por enquanto só conseguimos ler cupons de São Paulo. A chave " + chave + " foi identificada, mas os itens não puderam ser buscados.", "error");
       return this._saveFallback(chave);
     }
 
-    showAuthMessage("Cupom lido! Buscando os itens na SEFAZ...", "success");
+    showScanMessage("Cupom lido! Buscando os itens na SEFAZ...", "success");
 
     let apiResult;
     try {
@@ -198,12 +198,12 @@ window.ScannerModule = {
       apiResult = await response.json();
     } catch (err) {
       console.error("Erro ao buscar cupom na SEFAZ:", err);
-      showAuthMessage("Não conseguimos buscar os itens agora, mas a chave foi registrada.", "error");
+      showScanMessage("Não conseguimos buscar os itens agora, mas a chave foi registrada.", "error");
       return this._saveFallback(chave);
     }
 
     if (!apiResult || apiResult.ok !== true) {
-      showAuthMessage("Cupom não encontrado na SEFAZ, mas a chave foi registrada.", "error");
+      showScanMessage("Cupom não encontrado na SEFAZ, mas a chave foi registrada.", "error");
       return this._saveFallback(chave);
     }
 
@@ -221,14 +221,14 @@ window.ScannerModule = {
     try {
       await window.StoreModule.saveReceipt(receipt);
       window.StoreModule.addItemsToStock(receipt.items);
-      showAuthMessage("Cupom Fiscal registrado com sucesso!", "success");
+      showScanMessage("Cupom Fiscal registrado com sucesso!", "success");
       if (window.go) window.go('history');
     } catch (err) {
       if (err.message === 'not-authenticated') {
-        showAuthMessage("Entre com sua conta Google para guardar o histórico de cupons.", "error");
+        showScanMessage("Entre com sua conta Google para guardar o histórico de cupons.", "error");
       } else {
         console.error("Erro ao salvar cupom:", err);
-        showAuthMessage("Cupom lido, mas houve um erro ao salvar.", "error");
+        showScanMessage("Cupom lido, mas houve um erro ao salvar.", "error");
       }
     }
   },
@@ -248,7 +248,7 @@ window.ScannerModule = {
       if (window.go) window.go('history');
     } catch (err) {
       if (err.message === 'not-authenticated') {
-        showAuthMessage("Entre com sua conta Google para guardar o histórico de cupons.", "error");
+        showScanMessage("Entre com sua conta Google para guardar o histórico de cupons.", "error");
       }
     }
   }
