@@ -79,6 +79,80 @@ window.ScannerModule = {
     this.stopScanner().then(runScan);
   },
 
+  scanReceiptPhoto: async function(file) {
+    if (!file) return;
+
+    await this.stopScanner();
+    showAuthMessage("Foto recebida! Lendo os itens do cupom com IA...", "success");
+
+    let imageBase64;
+    try {
+      imageBase64 = await this._fileToBase64(file);
+    } catch (err) {
+      console.error("Erro ao ler a foto:", err);
+      showAuthMessage("Não conseguimos abrir essa foto. Tente novamente.", "error");
+      return;
+    }
+
+    let apiResult;
+    try {
+      const response = await fetch('/api/parse-receipt-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64, mimeType: file.type || 'image/jpeg' })
+      });
+      apiResult = await response.json();
+    } catch (err) {
+      console.error("Erro ao enviar foto para leitura:", err);
+      showAuthMessage("Não conseguimos ler essa foto agora. Tente de novo ou lance manualmente.", "error");
+      return;
+    }
+
+    if (!apiResult || apiResult.ok !== true) {
+      showAuthMessage("Não conseguimos identificar um cupom fiscal nessa foto. Tente uma foto mais nítida ou lance manualmente.", "error");
+      return;
+    }
+
+    const receipt = {
+      chaveAcesso: 'foto-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      storeName: apiResult.store.name,
+      storeCnpj: apiResult.store.cnpj,
+      storeAddress: apiResult.store.address,
+      emittedAt: apiResult.receipt.emittedAt,
+      totalValue: apiResult.receipt.totalValue,
+      itemsAvailable: true,
+      source: 'photo',
+      items: apiResult.items
+    };
+
+    try {
+      await window.StoreModule.saveReceipt(receipt);
+      window.StoreModule.addItemsToStock(receipt.items);
+      showAuthMessage("Cupom lido e registrado com sucesso!", "success");
+      if (window.go) window.go('history');
+    } catch (err) {
+      if (err.message === 'not-authenticated') {
+        showAuthMessage("Entre com sua conta Google para guardar o histórico de cupons.", "error");
+      } else {
+        console.error("Erro ao salvar cupom da foto:", err);
+        showAuthMessage("Cupom lido, mas houve um erro ao salvar.", "error");
+      }
+    }
+  },
+
+  _fileToBase64: function(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        const base64 = result.substring(result.indexOf(',') + 1);
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  },
+
   extractChaveFromQrUrl: function(qrCodeData) {
     try {
       const parsed = new URL(qrCodeData);
