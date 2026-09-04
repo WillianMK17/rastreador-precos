@@ -123,7 +123,7 @@ window.AuthModule = {
   // Google Sign-In with robust fallback
   loginWithGoogle: function() {
     if (!window.auth) {
-      this.loginAsGuest("Convidado Google");
+      showAuthMessage("Inicializando serviço de autenticação...", "error");
       return;
     }
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -133,7 +133,7 @@ window.AuthModule = {
       prompt: 'select_account'
     });
 
-    showAuthMessage("Conectando com o Google...", "success");
+    showAuthMessage("Abrindo seleção de contas do Google...", "success");
 
     window.auth.signInWithPopup(provider)
       .then(result => {
@@ -142,12 +142,22 @@ window.AuthModule = {
         setTimeout(() => { window.onUserAuthenticated(); }, 400);
       })
       .catch(error => {
-        console.warn("Popup error/blocked, falling back to redirect:", error);
-        showAuthMessage("Redirecionando para o login do Google...", "success");
-        window.auth.signInWithRedirect(provider).catch(err => {
-          console.error("Google Auth Redirect Error:", err);
-          this.loginAsGuest("Usuário Google");
-        });
+        console.error("Google Auth Error:", error);
+        const errCode = error.code || "";
+        const errMessage = error.message || "";
+        
+        if (errCode === 'auth/popup-blocked') {
+          showAuthMessage("O navegador bloqueou a janela de login. Redirecionando...", "error");
+          window.auth.signInWithRedirect(provider);
+        } else if (errCode === 'auth/popup-closed-by-user') {
+          showAuthMessage("Janela do Google fechada. Clique em 'Entrar com o Google' novamente.", "error");
+        } else if (errCode === 'auth/unauthorized-domain') {
+          showAuthMessage("Domínio Vercel aguardando autorização nos Domínios Autorizados do Firebase.", "error");
+        } else if (errCode === 'auth/operation-not-allowed') {
+          showAuthMessage("Provedor Google aguardando ativação no Firebase Console.", "error");
+        } else {
+          showAuthMessage("Erro no Google Auth: " + (errMessage || errCode), "error");
+        }
       });
   },
 
