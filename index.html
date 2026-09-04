@@ -487,9 +487,21 @@
 
       <div class="receipt-card" style="border-color:var(--accent-gold);">
         <div style="font-family:var(--font-mono); font-size:11px; color:var(--accent-gold); font-weight:700; text-transform:uppercase;">💡 Dica Inteligente</div>
-        <div style="font-size:14px; margin-top:4px;">
-          Adicione itens à sua lista para calcular a rota mais barata nos mercados de Ourinhos.
+        <div id="list-result-tip-text" style="font-size:14px; margin-top:4px;">
+          Adicione itens à sua lista para calcular onde compensa comprar.
         </div>
+      </div>
+
+      <div class="cat-chip-row" id="list-result-strategy-toggle" style="display:none; margin-bottom:16px;">
+        <button type="button" class="cat-chip active" id="strat-single" onclick="strategy('single')">Tudo em 1 mercado</button>
+        <button type="button" class="cat-chip" id="strat-split" onclick="strategy('split')">Item por item</button>
+      </div>
+
+      <div id="single-view">
+        <div id="single-market-container"></div>
+      </div>
+      <div id="split-view" style="display:none;">
+        <div id="split-by-item-container"></div>
       </div>
 
       <div class="app-legal-footer">

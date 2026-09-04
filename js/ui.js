@@ -77,6 +77,9 @@ window.go = function(id) {
   } else if (id === 'analysis') {
     renderProductAnalysis();
     if (window.ScannerModule) window.ScannerModule.stopScanner();
+  } else if (id === 'list-result') {
+    renderListResult();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   }
@@ -237,6 +240,149 @@ function renderMarketComparison() {
       </div>
     `;
     }).join('');
+  });
+}
+
+// Shopping List Optimization ("Onde compensa comprar")
+function matchShoppingListItems(shoppingList, receipts) {
+  const flatItems = [];
+  receipts.forEach(r => {
+    if (!r.itemsAvailable) return;
+    const timestamp = parseEmittedAtToTimestamp(r.emittedAt);
+    (r.items || []).forEach(item => {
+      if (!item.matchKey) return;
+      flatItems.push({
+        matchKey: item.matchKey,
+        storeName: r.storeName || 'Loja não identificada',
+        unitPrice: item.unitPrice,
+        timestamp
+      });
+    });
+  });
+
+  return shoppingList.map(listItem => {
+    const queryWords = normalizeProductName(listItem.name).split(' ').filter(Boolean);
+    const matched = queryWords.length === 0
+      ? []
+      : flatItems.filter(fi => queryWords.every(w => fi.matchKey.includes(w)));
+
+    // Uma loja pode aparecer várias vezes (compras em datas diferentes) — fica só o preço mais recente
+    const latestByStore = {};
+    matched.forEach(m => {
+      const existing = latestByStore[m.storeName];
+      if (!existing || m.timestamp > existing.timestamp) latestByStore[m.storeName] = m;
+    });
+
+    return { name: listItem.name, matches: Object.values(latestByStore) };
+  });
+}
+
+function buildSingleMarketTotals(matchedResults) {
+  const totalItems = matchedResults.length;
+  const byStore = {};
+  matchedResults.forEach(r => {
+    r.matches.forEach(m => {
+      if (!byStore[m.storeName]) byStore[m.storeName] = { storeName: m.storeName, total: 0, matchedCount: 0 };
+      byStore[m.storeName].total += m.unitPrice;
+      byStore[m.storeName].matchedCount += 1;
+    });
+  });
+  return Object.values(byStore)
+    .map(s => Object.assign({}, s, { totalItems }))
+    // Completude primeiro: um mercado com preço de 1 item nunca deve parecer
+    // "mais barato" que um com todos os itens só por somar menos coisa.
+    .sort((a, b) => b.matchedCount - a.matchedCount || a.total - b.total);
+}
+
+function buildSplitByItem(matchedResults) {
+  return matchedResults.map(r => {
+    if (r.matches.length === 0) return { name: r.name, matched: false };
+    const cheapest = [...r.matches].sort((a, b) => a.unitPrice - b.unitPrice)[0];
+    return { name: r.name, matched: true, storeName: cheapest.storeName, price: cheapest.unitPrice };
+  });
+}
+
+function renderListResult() {
+  const tipText = document.getElementById('list-result-tip-text');
+  const toggle = document.getElementById('list-result-strategy-toggle');
+  const singleContainer = document.getElementById('single-market-container');
+  const splitContainer = document.getElementById('split-by-item-container');
+  if (!tipText || !singleContainer || !splitContainer) return;
+
+  const shoppingList = window.AppState.shoppingList || [];
+  if (shoppingList.length === 0) {
+    tipText.innerHTML = 'Adicione itens à sua lista para calcular onde compensa comprar.';
+    toggle.style.display = 'none';
+    singleContainer.innerHTML = '';
+    splitContainer.innerHTML = '';
+    return;
+  }
+
+  tipText.textContent = 'Calculando...';
+  toggle.style.display = 'none';
+
+  window.StoreModule.loadReceipts().then(receipts => {
+    const results = matchShoppingListItems(shoppingList, receipts);
+    const matchedCount = results.filter(r => r.matches.length > 0).length;
+
+    if (matchedCount === 0) {
+      tipText.innerHTML = 'Nenhum item da sua lista tem preço registrado ainda. Escaneie cupons ou lance manualmente pra começar a comparar.';
+      singleContainer.innerHTML = '';
+      splitContainer.innerHTML = '';
+      return;
+    }
+
+    const singleTotals = buildSingleMarketTotals(results);
+    const splitItems = buildSplitByItem(results);
+    const splitTotal = splitItems.filter(i => i.matched).reduce((sum, i) => sum + i.price, 0);
+    const bestSingle = singleTotals[0];
+
+    toggle.style.display = 'flex';
+
+    if (matchedCount < shoppingList.length) {
+      tipText.innerHTML = `Preço encontrado pra ${matchedCount} de ${shoppingList.length} itens — o resto ainda não tem histórico de preço.`;
+    } else if (bestSingle && bestSingle.matchedCount < bestSingle.totalItems) {
+      tipText.innerHTML = `Nenhum mercado tem preço confirmado pra todos os itens ainda. O mais completo é <b>${bestSingle.storeName}</b> (${bestSingle.matchedCount} de ${bestSingle.totalItems}) — dá uma olhada em "Item por item" pra ver o resto.`;
+    } else if (bestSingle && bestSingle.total - splitTotal > 0.009) {
+      tipText.innerHTML = `Vá só no <b>${bestSingle.storeName}</b>. Dividir a compra economiza <b>${formatBRL(bestSingle.total - splitTotal)}</b> — avalie se compensa o deslocamento.`;
+    } else if (bestSingle) {
+      tipText.innerHTML = `<b>${bestSingle.storeName}</b> já tem o melhor preço pra sua lista inteira — não compensa dividir em mais de um mercado.`;
+    }
+
+    singleContainer.innerHTML = singleTotals.map((s, i) => `
+      <div class="receipt-card" style="margin-bottom:12px;">
+        <div class="item-row">
+          <div>
+            ${i === 0 ? '<span class="badge-best">MELHOR TOTAL</span><br>' : ''}
+            <div class="item-name">${s.storeName}</div>
+            <div class="item-meta">${s.matchedCount} de ${s.totalItems} itens confirmados</div>
+          </div>
+          <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(s.total)}${s.matchedCount < s.totalItems ? '*' : ''}</div>
+        </div>
+      </div>
+    `).join('') + (singleTotals.some(s => s.matchedCount < s.totalItems)
+      ? '<div class="subtitle" style="font-size:12px;">* total estimado — nem todo item da lista tem preço confirmado nesse mercado</div>'
+      : '');
+
+    splitContainer.innerHTML = `
+      <div class="receipt-card" style="margin-bottom:12px;">
+        ${splitItems.map(i => `
+          <div class="item-row">
+            <div>
+              <div class="item-name">${i.name}</div>
+              <div class="item-meta">${i.matched ? i.storeName : 'sem preço registrado ainda'}</div>
+            </div>
+            <div style="font-family:var(--font-mono); font-weight:700; font-size:14px;">${i.matched ? formatBRL(i.price) : '—'}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="index-box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="eyebrow" style="margin:0;">Total item por item</div>
+          <div class="index-val">${formatBRL(splitTotal)}</div>
+        </div>
+      </div>
+    `;
   });
 }
 
