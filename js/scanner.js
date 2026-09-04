@@ -16,7 +16,15 @@ window.ScannerModule = {
     if (this.isScanning) return;
 
     this.html5QrCode = new Html5Qrcode(elementId);
-    const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+    const config = {
+      fps: 10,
+      aspectRatio: 1.0,
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        const size = Math.floor(minEdge * 0.7);
+        return { width: size, height: size };
+      }
+    };
 
     this.html5QrCode.start(
       { facingMode: "environment" },
