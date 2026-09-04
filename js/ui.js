@@ -192,23 +192,31 @@ function renderMarketComparison() {
       return;
     }
 
-    container.innerHTML = comparisons.map(c => `
+    container.innerHTML = comparisons.map(c => {
+      const maxPrice = Math.max(...c.stores.map(s => s.unitPrice)) || 1;
+      const ariaLabel = 'Comparação de preço de ' + c.description + ' entre ' +
+        c.stores.map(s => s.storeName + ': ' + formatBRL(s.unitPrice)).join(', ');
+
+      return `
       <div class="receipt-card" style="margin-bottom:12px;">
-        <div class="item-name" style="margin-bottom:8px;">${c.description}</div>
-        ${c.stores.map((s, i) => `
-          <div class="item-row">
-            <div>
-              ${i === 0 ? '<span class="badge-best">MAIS BARATO</span>' : ''}
-              <div class="item-name">${s.storeName || 'Loja não identificada'}</div>
-              <div class="item-meta">${s.storeAddress || 'endereço não disponível'} · distância não disponível</div>
+        <div class="item-name" style="margin-bottom:10px;">${c.description}</div>
+        <div role="img" aria-label="${ariaLabel}">
+          ${c.stores.map((s, i) => {
+            const pct = Math.max(6, Math.round((s.unitPrice / maxPrice) * 100));
+            return `
+            <div class="compare-bar-row">
+              <div class="compare-bar-label">${i === 0 ? '<span class="badge-best">MAIS BARATO</span> ' : ''}${s.storeName || 'Loja não identificada'}</div>
+              <div class="compare-bar-track">
+                <div class="compare-bar-fill${i === 0 ? ' best' : ''}" style="width:${pct}%"></div>
+              </div>
+              <div class="compare-bar-value">${formatBRL(s.unitPrice)}</div>
             </div>
-            <div style="text-align:right;">
-              <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(s.unitPrice)}</div>
-            </div>
-          </div>
-        `).join('')}
+          `;
+          }).join('')}
+        </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   });
 }
 

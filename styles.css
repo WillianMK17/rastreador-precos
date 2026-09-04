@@ -832,6 +832,57 @@ h1.big-title {
   margin-bottom: 4px;
 }
 
+/* Price Comparison Bar Chart */
+.compare-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.compare-bar-row:last-child {
+  margin-bottom: 0;
+}
+
+.compare-bar-label {
+  flex: 0 0 auto;
+  max-width: 40%;
+  font-size: 12.5px;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-bar-track {
+  flex: 1 1 auto;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.compare-bar-fill {
+  height: 20px;
+  min-width: 6px;
+  background: var(--card-border);
+  border-radius: 0 4px 4px 0;
+  transition: width var(--transition-smooth);
+}
+
+.compare-bar-fill.best {
+  background: var(--accent-gold);
+}
+
+.compare-bar-value {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  min-width: 62px;
+  text-align: right;
+}
+
 /* Shopping List */
 .list-input-group {
   display: flex;
