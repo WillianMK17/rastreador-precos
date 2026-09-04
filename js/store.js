@@ -53,10 +53,13 @@ window.resetAllData = function() {
 };
 
 window.CATEGORY_RULES = [
-  { category: 'Posto de Combustível', pattern: /POSTO|COMBUSTIVEL|AUTO POSTO/ },
-  { category: 'Farmácia', pattern: /FARMA|DROGARIA|DROGASIL|PACHECO/ },
+  { category: 'Posto de Combustível', pattern: /POSTO|COMBUSTIVEL|AUTO POSTO|IPIRANGA|SHELL|PETROBRAS|ALESAT/ },
+  { category: 'Farmácia', pattern: /FARMA|DROGARIA|DROGASIL|PACHECO|RAIA|PAGUE MENOS|EXTRAFARMA|VENANCIO/ },
   { category: 'Bar/Restaurante', pattern: /\bBAR\b|RESTAURANTE|LANCHONETE|PIZZARIA|CHURRASCARIA|PADARIA|\bCAFE\b/ },
-  { category: 'Mercado', pattern: /MERCADO|SUPERMERCADO|ATACAD|HIPERMERCADO|COMERCIO/ }
+  {
+    category: 'Mercado',
+    pattern: /MERCADO|SUPERMERCADO|ATACAD|HIPERMERCADO|COMERCIO|MUFFATO|ASSAI|EXTRA|CARREFOUR|PAO DE ACUCAR|WALMART|\bBIG\b|\bDIA\b|ANGELONI|\bCOOP\b|ZAFFARI|BRETAS|SAVEGNAGO|GBARBOSA|NAGUMO|COMPER|CONDOR|MAKRO|SAMS CLUB|TENDA|ST MARCHE|SUPER NOSSO|MUNDIAL|GUANABARA|EMPORIO/
+  }
 ];
 
 function categorizeStore(storeName) {
@@ -103,6 +106,26 @@ window.StoreModule = {
         category: categorizeStore(receipt.storeName),
         scannedAt: firebase.firestore.FieldValue.serverTimestamp()
       }), { merge: true }).then(() => ({ duplicate: false }));
+    });
+  },
+
+  recategorizeAllReceipts: function() {
+    if (!window.auth || !window.auth.currentUser || !window.db) {
+      return Promise.resolve(0);
+    }
+    const uid = window.auth.currentUser.uid;
+    const receiptsRef = window.db.collection('users').doc(uid).collection('receipts');
+
+    return receiptsRef.get().then(snapshot => {
+      const updates = [];
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const correctCategory = categorizeStore(data.storeName);
+        if (data.category !== correctCategory) {
+          updates.push(doc.ref.update({ category: correctCategory }));
+        }
+      });
+      return Promise.all(updates).then(() => updates.length);
     });
   },
 

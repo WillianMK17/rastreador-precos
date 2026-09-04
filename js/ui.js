@@ -373,6 +373,15 @@ function renderMonthDetail() {
   });
 }
 
+window.recalculateCategories = function() {
+  window.StoreModule.recategorizeAllReceipts().then(updatedCount => {
+    alert(updatedCount > 0
+      ? updatedCount + ' cupom(ns) tiveram a categoria corrigida.'
+      : 'Nenhuma categoria precisou ser corrigida.');
+    renderMonthDetail();
+  });
+};
+
 // Theme Controller (Escuro Terroso vs Claro Pastel Moderno)
 function initTheme() {
   const currentTheme = window.AppState.theme;
