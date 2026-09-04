@@ -51,3 +51,34 @@ window.resetAllData = function() {
   window.AppState.itemsRising = [];
   window.saveState();
 };
+
+window.StoreModule = {
+  saveReceipt: function(receipt) {
+    if (!window.auth || !window.auth.currentUser) {
+      return Promise.reject(new Error('not-authenticated'));
+    }
+    if (!window.db) {
+      return Promise.reject(new Error('firestore-unavailable'));
+    }
+    const uid = window.auth.currentUser.uid;
+    return window.db
+      .collection('users').doc(uid)
+      .collection('receipts').doc(receipt.chaveAcesso)
+      .set(Object.assign({}, receipt, {
+        scannedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }), { merge: true });
+  },
+
+  loadReceipts: function() {
+    if (!window.auth || !window.auth.currentUser || !window.db) {
+      return Promise.resolve([]);
+    }
+    const uid = window.auth.currentUser.uid;
+    return window.db
+      .collection('users').doc(uid)
+      .collection('receipts')
+      .orderBy('scannedAt', 'desc')
+      .get()
+      .then(snapshot => snapshot.docs.map(doc => Object.assign({ id: doc.id }, doc.data())));
+  }
+};
