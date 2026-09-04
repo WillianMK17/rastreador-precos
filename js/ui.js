@@ -481,12 +481,18 @@ function buildPriceLineChartSvg(entries) {
   const firstLabel = `<text x="${points[0].x}" y="${points[0].y - 10}" font-size="9" font-family="var(--font-mono)" fill="var(--text-muted)" text-anchor="start">${formatBRL(points[0].price)}</text>`;
   const lastLabel = `<text x="${lastPoint.x}" y="${lastPoint.y - 10}" font-size="9" font-family="var(--font-mono)" fill="var(--text-main)" font-weight="700" text-anchor="end">${formatBRL(lastPoint.price)}</text>`;
 
+  const monthLabels = entries.map((e, i) => {
+    const label = MONTH_NAMES[e.date.getMonth()].slice(0, 3) + '/' + String(e.date.getFullYear()).slice(2);
+    return `<text x="${points[i].x.toFixed(1)}" y="${height - 4}" font-size="8" font-family="var(--font-mono)" fill="var(--text-muted)" text-anchor="middle">${label}</text>`;
+  }).join('');
+
   return `
     <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; display:block;" role="img" aria-label="Gráfico de evolução de preço">
       <path d="${pathD}" fill="none" stroke="var(--accent-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       ${circles}
       ${firstLabel}
       ${lastLabel}
+      ${monthLabels}
     </svg>
   `;
 }
