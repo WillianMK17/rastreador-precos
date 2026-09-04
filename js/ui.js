@@ -684,7 +684,8 @@ window.addStockItem = function(name, qty, meta) {
     qty: qty || 1,
     meta: meta || 'adicionado recentemente',
     level: 100,
-    low: false
+    low: false,
+    source: 'manual'
   };
   window.AppState.stock.push(item);
   renderStock();
@@ -701,7 +702,7 @@ function renderStock() {
         <div style="font-size:32px; margin-bottom:8px;">📦</div>
         <div style="font-weight:700; font-size:15px; margin-bottom:4px;">Seu estoque está limpo</div>
         <div style="color:var(--text-muted); font-size:13px; max-width:280px; margin:0 auto;">
-          Escaneie um cupom fiscal ou adicione produtos para acompanhar a despensa da sua casa.
+          Cadastre um produto acima para acompanhar a despensa da sua casa.
         </div>
       </div>
     `;

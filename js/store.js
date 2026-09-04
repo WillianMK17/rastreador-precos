@@ -34,7 +34,9 @@ window.loadState = function() {
     try {
       const parsed = JSON.parse(saved);
       if (parsed.shoppingList) window.AppState.shoppingList = parsed.shoppingList;
-      if (parsed.stock) window.AppState.stock = parsed.stock;
+      // Descarta itens de estoque que vieram de cupom escaneado (recurso removido) —
+      // Estoque agora é só o que o usuário cadastra manualmente.
+      if (parsed.stock) window.AppState.stock = parsed.stock.filter(item => item.source === 'manual');
       if (parsed.monthlySpent !== undefined) window.AppState.monthlySpent = parsed.monthlySpent;
     } catch(e) {
       console.error(e);
@@ -228,25 +230,5 @@ window.StoreModule = {
           stores: stores.sort((a, b) => a.unitPrice - b.unitPrice)
         }));
     });
-  },
-
-  addItemsToStock: function(items) {
-    items.forEach(item => {
-      const qty = Math.max(1, Math.round(item.quantity));
-      const existing = item.code ? window.AppState.stock.find(s => s.code === item.code) : null;
-      if (existing) {
-        existing.qty += qty;
-      } else {
-        window.AppState.stock.push({
-          id: 'stock-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-          code: item.code,
-          name: item.description,
-          qty: qty,
-          meta: item.unit || 'via cupom fiscal',
-          low: false
-        });
-      }
-    });
-    window.saveState();
   }
 };

@@ -127,7 +127,6 @@ window.ScannerModule = {
 
     try {
       await window.StoreModule.saveReceipt(receipt);
-      window.StoreModule.addItemsToStock(receipt.items);
       showScanMessage("Cupom lido e registrado com sucesso!", "success");
       if (window.go) window.go('history');
     } catch (err) {
@@ -224,7 +223,6 @@ window.ScannerModule = {
         showScanMessage("Esse cupom já tinha sido lido antes — não foi registrado de novo.", "error");
         return;
       }
-      window.StoreModule.addItemsToStock(receipt.items);
       showScanMessage("Cupom Fiscal registrado com sucesso!", "success");
       if (window.go) window.go('history');
     } catch (err) {
