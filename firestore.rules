@@ -4,5 +4,14 @@ service cloud.firestore {
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Resumo anônimo de preços por produto (média, menor preço, nº de amostras),
+    // calculado no backend a partir dos cupons de todos os usuários — nunca expõe
+    // nota fiscal ou identidade de quem comprou. Só o backend (Admin SDK, que
+    // ignora estas regras) grava aqui; o cliente só lê.
+    match /priceIndex/{matchKey} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
   }
 }

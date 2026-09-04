@@ -204,6 +204,7 @@ window.StoreModule = {
           if (!item.matchKey) return;
           if (!entriesByMatchKey[item.matchKey]) entriesByMatchKey[item.matchKey] = [];
           entriesByMatchKey[item.matchKey].push({
+            matchKey: item.matchKey,
             description: item.description,
             unitPrice: item.unitPrice,
             storeName: r.storeName,
@@ -226,9 +227,23 @@ window.StoreModule = {
         })
         .filter(stores => stores.length >= 2)
         .map(stores => ({
+          matchKey: stores[0].matchKey,
           description: stores[0].description,
           stores: stores.sort((a, b) => a.unitPrice - b.unitPrice)
         }));
     });
+  },
+
+  // Resumo anônimo (preço médio, menor preço, nº de amostras) calculado no
+  // backend a partir dos cupons de TODOS os usuários — não só os seus.
+  loadPriceIndexEntry: function(matchKey) {
+    if (!window.db || !matchKey) return Promise.resolve(null);
+    return window.db.collection('priceIndex').doc(matchKey).get()
+      .then(doc => doc.exists ? doc.data() : null)
+      .catch(() => null);
+  },
+
+  triggerCommunityPriceUpdate: function() {
+    return fetch('/api/aggregate-prices', { method: 'POST' }).then(res => res.json());
   }
 };

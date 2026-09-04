@@ -215,7 +215,7 @@ function renderMarketComparison() {
       return;
     }
 
-    container.innerHTML = comparisons.map(c => {
+    container.innerHTML = comparisons.map((c, i) => {
       const maxPrice = Math.max(...c.stores.map(s => s.unitPrice)) || 1;
       const ariaLabel = 'Comparação de preço de ' + c.description + ' entre ' +
         c.stores.map(s => s.storeName + ': ' + formatBRL(s.unitPrice)).join(', ');
@@ -237,9 +237,23 @@ function renderMarketComparison() {
           `;
           }).join('')}
         </div>
+        <div id="community-price-${i}"></div>
       </div>
     `;
     }).join('');
+
+    comparisons.forEach((c, i) => {
+      window.StoreModule.loadPriceIndexEntry(c.matchKey).then(entry => {
+        if (!entry) return;
+        const el = document.getElementById('community-price-' + i);
+        if (!el) return;
+        el.innerHTML = `
+          <div class="item-meta" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--card-border);">
+            🌐 Comunidade: média ${formatBRL(entry.avgUnitPrice)} · menor ${formatBRL(entry.minUnitPrice)}${entry.minUnitPriceStore ? ' (' + entry.minUnitPriceStore + ')' : ''} · ${entry.distinctUsers} usuários
+          </div>
+        `;
+      });
+    });
   });
 }
 
@@ -718,6 +732,22 @@ function renderProductAnalysis() {
     }).join('');
   });
 }
+
+window.updateCommunityPrices = function() {
+  window.StoreModule.triggerCommunityPriceUpdate().then(result => {
+    if (result && result.ok) {
+      alert(result.productsUpdated > 0
+        ? 'Preços da comunidade atualizados — ' + result.productsUpdated + ' produto(s) com dado novo.'
+        : 'Nenhum produto tem amostras de usuários suficientes ainda.');
+    } else {
+      alert('Não foi possível atualizar agora. Tente novamente mais tarde.');
+    }
+    renderMarketComparison();
+  }).catch(err => {
+    console.error('Erro ao atualizar preços da comunidade:', err);
+    alert('Não foi possível atualizar agora. Tente novamente mais tarde.');
+  });
+};
 
 window.recalculateCategories = function() {
   window.StoreModule.recategorizeAllReceipts().then(updatedCount => {
