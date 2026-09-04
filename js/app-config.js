@@ -14,11 +14,11 @@ window.APP_CONFIG = {
   copyright: "© 2026 AugeFW. Todos os direitos reservados.",
   defaultCity: "Ourinhos, SP",
   firebase: {
-    projectId: "friccao-zero-app-2026",
-    appId: "1:516844594342:web:c3fd1642b38ead03d70067",
-    storageBucket: "friccao-zero-app-2026.firebasestorage.app",
-    apiKey: "AIzaSyDtzZoAQ9Hy8j-9gAZxoKWFTriByQQsk_4",
-    authDomain: "friccao-zero-app-2026.firebaseapp.com",
-    messagingSenderId: "516844594342"
+    projectId: "willian-rastreador-precos",
+    appId: "1:493697743919:web:c3fd1642b38ead03d70067",
+    storageBucket: "willian-rastreador-precos.firebasestorage.app",
+    apiKey: "AIzaSyCKf0mx7_af9quAV7ubopRXkUdMjEXoOZY",
+    authDomain: "willian-rastreador-precos.firebaseapp.com",
+    messagingSenderId: "493697743919"
   }
 };
