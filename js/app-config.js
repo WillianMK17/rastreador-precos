@@ -17,7 +17,7 @@ window.APP_CONFIG = {
     projectId: "willian-rastreador-precos",
     appId: "1:493697743919:web:c3fd1642b38ead03d70067",
     storageBucket: "willian-rastreador-precos.firebasestorage.app",
-    apiKey: "AIzaSyCKf0mx7_af9quAV7ubopRXkUdMjEXoOZY",
+    apiKey: "AIzaSyDMx3_NIamTY3h-3L5wzVjjXDN1ggJs0R4",
     authDomain: "willian-rastreador-precos.firebaseapp.com",
     messagingSenderId: "493697743919"
   }
