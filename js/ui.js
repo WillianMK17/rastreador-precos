@@ -712,6 +712,60 @@ function renderStock() {
   `).join('');
 }
 
+// Manual Bill Entry (água, luz, telefone)
+window.saveManualBill = function() {
+  const providerInput = document.getElementById('bill-provider');
+  const priceInput = document.getElementById('bill-price');
+  const provider = (providerInput.value || '').trim();
+  const price = parseFloat(priceInput.value || 0);
+
+  if (!provider || !price) {
+    alert('Preencha a concessionária e o valor da conta.');
+    return;
+  }
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const emittedAt = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':00';
+
+  const receipt = {
+    chaveAcesso: 'manual-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+    storeName: provider,
+    storeCnpj: '',
+    storeAddress: '',
+    emittedAt: emittedAt,
+    totalValue: price,
+    itemsAvailable: true,
+    source: 'manual',
+    items: [{
+      description: provider + ' - conta',
+      code: '',
+      quantity: 1,
+      unit: 'mês',
+      unitPrice: price,
+      totalPrice: price
+    }]
+  };
+
+  window.StoreModule.saveReceipt(receipt).then(result => {
+    if (result && result.duplicate) {
+      alert('Essa conta já parece ter sido registrada.');
+      return;
+    }
+    providerInput.value = '';
+    priceInput.value = '';
+    alert('Conta registrada com sucesso!');
+    if (window.go) window.go('history');
+  }).catch(err => {
+    if (err.message === 'not-authenticated') {
+      alert('Entre com sua conta Google para guardar o histórico de contas.');
+    } else {
+      console.error('Erro ao salvar conta manual:', err);
+      alert('Houve um erro ao salvar a conta.');
+    }
+  });
+};
+
 // Shopping List Controller
 window.addListItem = function() {
   const input = document.getElementById('list-input-field');

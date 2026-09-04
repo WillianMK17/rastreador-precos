@@ -57,6 +57,10 @@ window.CATEGORY_RULES = [
   { category: 'Farmácia', pattern: /FARMA|DROGARIA|DROGASIL|PACHECO|RAIA|PAGUE MENOS|EXTRAFARMA|VENANCIO/ },
   { category: 'Bar/Restaurante', pattern: /\bBAR\b|RESTAURANTE|LANCHONETE|PIZZARIA|CHURRASCARIA|PADARIA|\bCAFE\b/ },
   {
+    category: 'Contas (Água/Luz/Telefone)',
+    pattern: /\bCPFL\b|\bENEL\b|ELEKTRO|\bLIGHT\b|\bCOPEL\b|\bCEMIG\b|EQUATORIAL|CELESC|\bRGE\b|COELBA|CELPE|COSERN|\bCEEE\b|\bAMPLA\b|SABESP|COPASA|CAGECE|CORSAN|EMBASA|CEDAE|COMPESA|\bCAESB\b|SANEPAR|\bVIVO\b|\bCLARO\b|\bTIM\b|\bOI\b\s|\bNET\b|\bSKY\b|\bALGAR\b|NEXTEL/
+  },
+  {
     category: 'Mercado',
     pattern: /MERCADO|SUPERMERCADO|ATACAD|HIPERMERCADO|COMERCIO|MUFFATO|ASSAI|EXTRA|CARREFOUR|PAO DE ACUCAR|WALMART|\bBIG\b|\bDIA\b|ANGELONI|\bCOOP\b|ZAFFARI|BRETAS|SAVEGNAGO|GBARBOSA|NAGUMO|COMPER|CONDOR|MAKRO|SAMS CLUB|TENDA|ST MARCHE|SUPER NOSSO|MUNDIAL|GUANABARA|EMPORIO/
   }
@@ -91,7 +95,7 @@ function categorizeItems(items) {
   return match ? match.category : null;
 }
 
-const STRONG_STORE_CATEGORIES = ['Posto de Combustível', 'Farmácia', 'Bar/Restaurante'];
+const STRONG_STORE_CATEGORIES = ['Posto de Combustível', 'Farmácia', 'Bar/Restaurante', 'Contas (Água/Luz/Telefone)'];
 
 function categorizeReceipt(storeName, items) {
   const storeCategory = categorizeStore(storeName);

@@ -33,11 +33,22 @@ const RESPONSE_SCHEMA = {
   required: ['found', 'items']
 };
 
-const PROMPT = `Você está lendo a foto de um cupom fiscal (nota de mercado, posto de gasolina, farmácia, etc) do Brasil.
+const PROMPT = `Você está lendo a foto de um documento de despesa do Brasil. Pode ser um cupom fiscal
+(nota de mercado, posto de gasolina, farmácia, etc) OU uma fatura/conta de consumo
+(energia elétrica, água, telefone/internet).
 Extraia os dados exatamente como aparecem impressos, sem inventar nada.
-Se a foto não for de um cupom fiscal legível, retorne found:false e items:[].
-Para cada item da lista de produtos, extraia: descrição, quantidade, unidade (ex: UN, KG, L), valor unitário e valor total do item.
-Extraia também: nome da loja, CNPJ, endereço, data/hora de emissão (formato dd/mm/aaaa hh:mm:ss se disponível) e valor total do cupom.
+Se a foto não for de um documento de despesa legível, retorne found:false e items:[].
+
+Se for um CUPOM FISCAL com lista de produtos: para cada item, extraia descrição,
+quantidade, unidade (ex: UN, KG, L), valor unitário e valor total do item.
+
+Se for uma FATURA/CONTA DE CONSUMO (sem lista de produtos, só um valor de serviço):
+retorne items com um único item, onde description é o nome do serviço + mês de
+referência (ex: "Energia Elétrica - Setembro/2026"), quantity:1, unit:"mês",
+e unitPrice e totalPrice iguais ao valor total da fatura.
+
+Em ambos os casos, extraia também: nome da loja/concessionária, CNPJ, endereço,
+data/hora de emissão (formato dd/mm/aaaa hh:mm:ss se disponível) e valor total.
 Se algum campo não estiver legível na foto, deixe como string vazia ou 0, mas nunca invente um valor.`;
 
 export default async function handler(req, res) {

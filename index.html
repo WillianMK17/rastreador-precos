@@ -340,7 +340,7 @@
 
         <input type="file" accept="image/*" capture="environment" id="receipt-photo-input" style="display:none;" onchange="window.ScannerModule.scanReceiptPhoto(this.files[0])">
         <button class="btn-cta" style="max-width:320px; margin:8px auto 0; background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="document.getElementById('receipt-photo-input').click()">
-          🧾 QR não funciona? Foto do cupom inteiro
+          🧾 Foto do cupom, fatura de luz/água/telefone
         </button>
 
         <button style="background:none; border:none; color:var(--accent-gold); font-family:var(--font-mono); font-size:13px; cursor:pointer; text-decoration:underline; margin-top:8px;" onclick="go('manual')">
@@ -386,6 +386,19 @@
         alert('Item registrado com sucesso!');
         go('stock');
       ">Salvar no Histórico & Estoque</button>
+
+      <div class="eyebrow" style="margin-top:24px;">Ou lance uma conta (água, luz, telefone)</div>
+      <div class="receipt-card" style="max-width:500px; margin:0 auto 16px;">
+        <div class="item-row">
+          <input type="text" id="bill-provider" placeholder="Concessionária (ex: CPFL, Sabesp, Vivo)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
+        </div>
+        <div class="item-row">
+          <input type="number" id="bill-price" step="0.01" placeholder="Valor da conta (R$ 0,00)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
+        </div>
+      </div>
+      <button class="btn-cta" style="max-width:500px; margin:0 auto; background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="window.saveManualBill()">
+        Salvar Conta
+      </button>
 
       <div class="app-legal-footer">
         Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
