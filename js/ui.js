@@ -162,17 +162,44 @@ window.stockAdjust = function(btn, delta) {
   }
 };
 
+window.addStockItem = function(name, qty, meta) {
+  const item = {
+    id: 'stock-' + Date.now(),
+    name: name,
+    qty: qty || 1,
+    meta: meta || 'adicionado recentemente',
+    level: 100,
+    low: false
+  };
+  window.AppState.stock.push(item);
+  renderStock();
+  window.saveState();
+};
+
 function renderStock() {
   const container = document.getElementById('stock-container');
   if (!container) return;
+
+  if (!window.AppState.stock || window.AppState.stock.length === 0) {
+    container.innerHTML = `
+      <div class="receipt-card" style="text-align:center; padding:30px 20px;">
+        <div style="font-size:32px; margin-bottom:8px;">📦</div>
+        <div style="font-weight:700; font-size:15px; margin-bottom:4px;">Seu estoque está limpo</div>
+        <div style="color:var(--text-muted); font-size:13px; max-width:280px; margin:0 auto;">
+          Escaneie um cupom fiscal ou adicione produtos para acompanhar a despensa da sua casa.
+        </div>
+      </div>
+    `;
+    return;
+  }
 
   container.innerHTML = window.AppState.stock.map(item => `
     <div class="receipt-card stock-row" data-id="${item.id}" style="margin-bottom:12px;">
       <div style="flex:1;">
         <div class="item-name">${item.name}</div>
-        <div class="item-meta">${item.qty} pacotes · ${item.meta}</div>
+        <div class="item-meta">${item.qty} un · ${item.meta}</div>
         <div class="progress-bar-bg">
-          <div class="progress-bar-fill ${item.low ? 'low' : ''}" style="width: ${item.qty > 0 ? (item.qty * 40) + '%' : '5%'}"></div>
+          <div class="progress-bar-fill ${item.low ? 'low' : ''}" style="width: ${item.qty > 0 ? Math.min(100, (item.qty * 25)) + '%' : '5%'}"></div>
         </div>
       </div>
       <div class="stock-ctrls">
@@ -210,6 +237,15 @@ window.removeListItem = function(id) {
 function renderShoppingList() {
   const container = document.getElementById('shopping-list-container');
   if (!container) return;
+
+  if (!window.AppState.shoppingList || window.AppState.shoppingList.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:24px 14px; color:var(--text-muted); font-size:13.5px;">
+        🛒 Sua lista está vazia. Digite um produto acima e clique no botão <b>+</b> para adicionar!
+      </div>
+    `;
+    return;
+  }
 
   container.innerHTML = window.AppState.shoppingList.map(item => `
     <div class="list-row">

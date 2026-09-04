@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <!-- ===== SCREEN 0: LANDING PAGE (PÁGINA DE PROPAGANDA) ===== -->
+    <!-- ===== SCREEN 0: LANDING PAGE (PÁGINA DE PROPAGANDA - MOSTRADA ANTES DE LOGAR) ===== -->
     <div class="screen active" id="landing">
       <div class="hero-box">
         <div class="hero-badge">✨ Inteligência Financeira de Compras</div>
@@ -135,8 +135,8 @@
         <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); margin-top:8px;">— Mariana S., Ourinhos SP</div>
       </div>
 
-      <button class="btn-cta" onclick="go('home')" style="background:transparent; border:1px solid var(--card-border); color:var(--text-main); margin-bottom:16px;">
-        Ver Demonstração do Painel →
+      <button class="btn-cta" onclick="go('auth')" style="background:transparent; border:1px solid var(--card-border); color:var(--text-main); margin-bottom:16px;">
+        Entrar ou Cadastrar para Começar →
       </button>
 
       <div class="app-legal-footer">
@@ -156,8 +156,8 @@
       <div class="auth-box">
         
         <!-- Botão de Acesso Instantâneo 1-Click -->
-        <button class="btn-cta" onclick="AuthModule.loginAsGuest('Usuário Convidado')" style="background:var(--accent-gold); color:#121110; margin-bottom:16px; font-size:14px; padding:12px;">
-          ⚡ Entrar Instantaneamente (Sem Senha)
+        <button class="btn-cta" onclick="AuthModule.loginAsGuest('Usuário')" style="background:var(--accent-gold); color:#121110; margin-bottom:16px; font-size:14px; padding:12px;">
+          ⚡ Entrar no Aplicativo (1-Click)
         </button>
 
         <div class="auth-tabs">
@@ -225,65 +225,40 @@
       </div>
     </div>
 
-    <!-- ===== SCREEN 1: HOME (DASHBOARD RESPONSIVO) ===== -->
+    <!-- ===== SCREEN 1: HOME (DASHBOARD LIMPO PÓS-LOGIN) ===== -->
     <div class="screen" id="home">
-      <div class="eyebrow">Este mês · Inflação Pessoal</div>
-      <h1 class="big-title">Gasto Total & Painel de Inflação</h1>
+      <div class="eyebrow">Seu Painel · Inflação Pessoal</div>
+      <h1 class="big-title">Gasto Total & Histórico</h1>
       
       <div class="desktop-grid-2" style="margin-bottom:16px;">
         <div class="receipt-card">
           <div class="eyebrow" style="margin:0;">Total de Gastos Em Cupons</div>
-          <div class="total-num">R$ 1.284,60</div>
-          <div class="subtitle" style="margin:6px 0 0;">Valor total pago em cupons salvos no Firebase</div>
+          <div class="total-num">R$ 0,00</div>
+          <div class="subtitle" style="margin:6px 0 0;">Nenhum cupom escaneado ainda nesta conta.</div>
         </div>
 
         <div class="index-box" style="margin-top:0;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
               <div class="eyebrow" style="margin:0;">Índice de Preço Pessoal</div>
-              <div class="index-val">+4,7%</div>
+              <div class="index-val">0,0%</div>
             </div>
-            <span class="trend-pill">▲ acima da média</span>
+            <span class="trend-pill down">● baseline inicial</span>
           </div>
-          <div class="subtitle" style="margin:8px 0 0; font-size:12px;">Variação real de preço dos itens de recompra sem considerar volume.</div>
+          <div class="subtitle" style="margin:8px 0 0; font-size:12px;">Variação real de preço calculada à medida que você registra cupons.</div>
         </div>
       </div>
 
-      <div class="receipt-card" style="margin-bottom:16px;">
-        <div class="eyebrow" style="margin:0 0 8px;">🔔 Oportunidade na região</div>
-        <div style="font-size:14px; line-height:1.4;">
-          <b>Óleo de soja 900ml</b> caiu de preço no Assaí Atacadista agora. Vale a pena estocar.
-        </div>
-      </div>
-
-      <div class="eyebrow">Subindo mais rápido</div>
+      <div class="eyebrow">Itens Registrados</div>
       <div class="receipt-card">
-        <div class="item-row">
-          <div>
-            <div class="item-name">Arroz Tio João 5kg</div>
-            <div class="item-meta">Extra Supermercados · R$ 5,78/kg</div>
-          </div>
-          <div class="item-change">▲ 12,4%</div>
-        </div>
-        <div class="item-row">
-          <div>
-            <div class="item-name">Gasolina comum</div>
-            <div class="item-meta">Posto Ipiranga · R$ 6,29/l</div>
-          </div>
-          <div class="item-change">▲ 6,8%</div>
-        </div>
-        <div class="item-row">
-          <div>
-            <div class="item-name">Óleo de soja 900ml</div>
-            <div class="item-meta">Assaí Atacadista · R$ 10,44/l</div>
-          </div>
-          <div class="item-change">▲ 9,0% <span style="color:var(--accent-gold); font-size:10px;">(reduflação 900ml)</span></div>
+        <div style="text-align:center; padding:24px 10px; color:var(--text-muted); font-size:13.5px;">
+          📄 Seu histórico está limpo. Escaneie um cupom fiscal abaixo para registrar seu primeiro produto!
         </div>
       </div>
 
       <button class="btn-cta" onclick="go('consent')" style="max-width:400px; margin:0 auto;">
         <span class="pulsing-dot"></span>
-        Escanear Cupom Fiscal (NFC-e)
+        Escanear Primeiro Cupom Fiscal (NFC-e)
       </button>
 
       <div class="app-legal-footer">
@@ -375,17 +350,23 @@
 
       <div class="receipt-card" style="max-width:500px; margin:0 auto 16px;">
         <div class="item-row">
-          <input type="text" placeholder="Nome do produto (ex: Arroz 5kg)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
+          <input type="text" id="manual-name" placeholder="Nome do produto (ex: Arroz 5kg)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
         </div>
         <div class="item-row">
-          <input type="number" step="0.01" placeholder="Valor pago (R$ 0,00)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
+          <input type="number" id="manual-price" step="0.01" placeholder="Valor pago (R$ 0,00)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
         </div>
         <div class="item-row">
-          <input type="text" placeholder="Nome do estabelecimento" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
+          <input type="text" id="manual-store" placeholder="Nome do estabelecimento" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
         </div>
       </div>
 
-      <button class="btn-cta" style="max-width:500px; margin:0 auto;" onclick="alert('Item salvo no histórico!'); go('history');">Salvar no Histórico</button>
+      <button class="btn-cta" style="max-width:500px; margin:0 auto;" onclick="
+        const n = document.getElementById('manual-name').value || 'Produto Novo';
+        const p = parseFloat(document.getElementById('manual-price').value || 0);
+        window.addStockItem(n, 1, 'adicionado manualmente');
+        alert('Item registrado com sucesso!');
+        go('stock');
+      ">Salvar no Histórico & Estoque</button>
 
       <div class="app-legal-footer">
         Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
@@ -396,28 +377,17 @@
     <!-- ===== SCREEN 5: HISTORY ===== -->
     <div class="screen" id="history">
       <div class="eyebrow">Histórico do Item</div>
-      <h1 class="big-title">Arroz Tio João 5kg</h1>
-      <p class="subtitle">6 compras registradas · 3 supermercados</p>
+      <h1 class="big-title">Histórico de Compras</h1>
+      <p class="subtitle">Acompanhe a variação de valores e compras registradas.</p>
 
       <div class="receipt-card">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <div style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted);">Preço atual · R$ 5,78/kg</div>
-            <div style="font-size:28px; font-family:var(--font-mono); font-weight:800; color:var(--text-main);">R$ 28,90</div>
-          </div>
-          <div style="text-align:right; font-family:var(--font-mono); font-size:13px; color:var(--price-up); font-weight:700;">
-            ▲ 12,4%<br><span style="color:var(--text-muted); font-weight:400;">últimos 6 meses</span>
-          </div>
+        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+          Nenhum histórico detalhado registrado. Escaneie um cupom para comparar automaticamente.
         </div>
-
-        <svg width="100%" height="80" viewBox="0 0 320 80" preserveAspectRatio="none" style="margin-top:16px;">
-          <polyline points="0,65 55,60 110,58 165,42 220,32 275,18 320,10" fill="none" stroke="var(--price-up)" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="320" cy="10" r="5" fill="var(--price-up)"/>
-        </svg>
       </div>
 
       <button class="btn-cta" style="background:transparent; border:1px solid var(--card-border); color:var(--text-main); max-width:400px; margin:0 auto;" onclick="go('compare')">
-        🔍 Ver preço em outros mercados de Ourinhos
+        🔍 Ver preços de mercados em Ourinhos
       </button>
 
       <div class="app-legal-footer">
@@ -430,7 +400,7 @@
     <div class="screen" id="compare">
       <button style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; cursor:pointer; margin-bottom:12px;" onclick="go('history')">← voltar ao histórico</button>
       <div class="eyebrow">Comparar · Ourinhos, SP</div>
-      <h1 class="big-title">Arroz Tio João 5kg</h1>
+      <h1 class="big-title">Preços em Ourinhos</h1>
       <p class="subtitle">Preços confirmados por notas fiscais escaneadas na cidade</p>
 
       <div class="receipt-card">
@@ -441,8 +411,8 @@
             <div class="item-meta">2,1 km · Centro</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">R$ 26,50</div>
-            <div style="font-size:11px; font-family:var(--font-mono); color:var(--price-down);">● atualizado há 2 dias</div>
+            <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">R$ --,--</div>
+            <div style="font-size:11px; font-family:var(--font-mono); color:var(--price-down);">● aguardando cupons</div>
           </div>
         </div>
         <div class="item-row">
@@ -451,18 +421,8 @@
             <div class="item-meta">3,4 km · Jardim Europa</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">R$ 27,90</div>
-            <div style="font-size:11px; font-family:var(--font-mono); color:var(--price-down);">● atualizado há 4 dias</div>
-          </div>
-        </div>
-        <div class="item-row">
-          <div>
-            <div class="item-name">Extra Supermercados</div>
-            <div class="item-meta">1,3 km · Centro</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">R$ 28,90</div>
-            <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">○ há 11 dias</div>
+            <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">R$ --,--</div>
+            <div style="font-size:11px; font-family:var(--font-mono); color:var(--price-down);">● aguardando cupons</div>
           </div>
         </div>
       </div>
@@ -505,45 +465,7 @@
       <div class="receipt-card" style="border-color:var(--accent-gold);">
         <div style="font-family:var(--font-mono); font-size:11px; color:var(--accent-gold); font-weight:700; text-transform:uppercase;">💡 Dica Inteligente</div>
         <div style="font-size:14px; margin-top:4px;">
-          Vá só no <b>Assaí Atacadista</b>. Dividir a compra em 3 mercados economiza apenas <b>R$ 1,70</b> — não compensa o deslocamento.
-        </div>
-      </div>
-
-      <div style="display:flex; gap:10px; margin:14px 0; max-width:400px; margin-left:auto; margin-right:auto;">
-        <button class="theme-toggle-btn active" id="strat-single" style="flex:1; padding:10px; justify-content:center;" onclick="strategy('single')">Tudo em 1 mercado</button>
-        <button class="theme-toggle-btn" id="strat-split" style="flex:1; padding:10px; justify-content:center;" onclick="strategy('split')">Item por item</button>
-      </div>
-
-      <div id="single-view">
-        <div class="receipt-card">
-          <div class="item-row">
-            <div>
-              <span class="badge-best">MELHOR TOTAL</span>
-              <div class="item-name">Assaí Atacadista</div>
-              <div class="item-meta">4 de 4 itens confirmados</div>
-            </div>
-            <div style="font-family:var(--font-mono); font-size:18px; font-weight:800;">R$ 47,80</div>
-          </div>
-          <div class="item-row">
-            <div>
-              <div class="item-name">Extra Supermercados</div>
-              <div class="item-meta">4 de 4 itens confirmados</div>
-            </div>
-            <div style="font-family:var(--font-mono); font-size:18px; font-weight:800;">R$ 52,30</div>
-          </div>
-        </div>
-      </div>
-
-      <div id="split-view" style="display:none;">
-        <div class="receipt-card">
-          <div class="item-row">
-            <div><div class="item-name">Tomate</div><div class="item-meta">Pão de Açúcar</div></div>
-            <div style="font-family:var(--font-mono); font-weight:700;">R$ 6,90</div>
-          </div>
-          <div class="item-row">
-            <div><div class="item-name">Cebola</div><div class="item-meta">Assaí Atacadista</div></div>
-            <div style="font-family:var(--font-mono); font-weight:700;">R$ 4,50</div>
-          </div>
+          Adicione itens à sua lista para calcular a rota mais barata nos mercados de Ourinhos.
         </div>
       </div>
 
@@ -575,17 +497,21 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
         INÍCIO
       </button>
-      <button class="tab-btn" id="tab-home" onclick="go('home')">
+      <button class="tab-btn" id="tab-home" onclick="go('home')" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
         PAINEL
       </button>
-      <button class="tab-btn" id="tab-scan" onclick="go('scan')">
+      <button class="tab-btn" id="tab-scan" onclick="go('scan')" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="3" width="6" height="6"/><rect x="15" y="3" width="6" height="6"/><rect x="3" y="15" width="6" height="6"/><path d="M15 15h6v6h-6z"/></svg>
         SCANNER
       </button>
-      <button class="tab-btn" id="tab-list" onclick="go('list')">
+      <button class="tab-btn" id="tab-list" onclick="go('list')" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
         LISTA
+      </button>
+      <button class="tab-btn" id="tab-stock" onclick="go('stock')" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+        ESTOQUE
       </button>
       <button class="tab-btn" id="tab-auth" onclick="go('auth')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 4 4-4H8a4 4 0 0 4-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>

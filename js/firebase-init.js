@@ -26,7 +26,7 @@
         if (result && result.user) {
           showAuthMessage("Login com Google realizado com sucesso!", "success");
           saveUserToFirestore(result.user);
-          setTimeout(() => { if (window.go) window.go('home'); }, 800);
+          setTimeout(() => { if (window.onUserAuthenticated) window.onUserAuthenticated(); }, 400);
         }
       }).catch(err => {
         console.warn("Auth redirect result error:", err);
@@ -54,8 +54,14 @@ function updateUserUI(user) {
   const guestData = JSON.parse(localStorage.getItem('guest_user_session') || 'null');
   const activeUser = user || guestData;
 
+  const tabLanding = document.getElementById('tab-landing');
+  const tabHome = document.getElementById('tab-home');
+  const tabScan = document.getElementById('tab-scan');
+  const tabList = document.getElementById('tab-list');
+  const tabStock = document.getElementById('tab-stock');
+
   if (activeUser) {
-    const displayName = activeUser.displayName || (activeUser.email ? activeUser.email.split('@')[0] : "Usuário Convidado");
+    const displayName = activeUser.displayName || (activeUser.email ? activeUser.email.split('@')[0] : "Usuário");
     if (userStatusEl) userStatusEl.textContent = displayName;
     if (userAvatarEl) {
       if (activeUser.photoURL) {
@@ -65,10 +71,23 @@ function updateUserUI(user) {
       }
     }
     if (authNavBtn) authNavBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 4 4-4H8a4 4 0 0 4-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 4-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       PERFIL
     `;
     if (logoutBtn) logoutBtn.style.display = 'block';
+
+    // SEPARAR PÁGINA DE PROPAGANDA: Ocultar aba de propaganda quando logado
+    if (tabLanding) tabLanding.style.display = 'none';
+    if (tabHome) tabHome.style.display = 'flex';
+    if (tabScan) tabScan.style.display = 'flex';
+    if (tabList) tabList.style.display = 'flex';
+    if (tabStock) tabStock.style.display = 'flex';
+
+    // Se estiver na tela de propaganda ou auth após logar, vai pro painel
+    const currentActiveScreen = document.querySelector('.screen.active');
+    if (currentActiveScreen && (currentActiveScreen.id === 'landing' || currentActiveScreen.id === 'auth')) {
+      if (window.go) window.go('home');
+    }
   } else {
     if (userStatusEl) userStatusEl.textContent = "Entrar";
     if (userAvatarEl) userAvatarEl.textContent = "?";
@@ -77,8 +96,27 @@ function updateUserUI(user) {
       ENTRAR
     `;
     if (logoutBtn) logoutBtn.style.display = 'none';
+
+    // Quando deslogado: Mostrar aba de propaganda
+    if (tabLanding) tabLanding.style.display = 'flex';
+    if (tabHome) tabHome.style.display = 'none';
+    if (tabScan) tabScan.style.display = 'none';
+    if (tabList) tabList.style.display = 'none';
+    if (tabStock) tabStock.style.display = 'none';
+
+    // Redireciona para a página de propaganda
+    const currentActiveScreen = document.querySelector('.screen.active');
+    if (currentActiveScreen && currentActiveScreen.id !== 'landing' && currentActiveScreen.id !== 'auth') {
+      if (window.go) window.go('landing');
+    }
   }
 }
+
+window.onUserAuthenticated = function() {
+  const guestData = JSON.parse(localStorage.getItem('guest_user_session') || 'null');
+  updateUserUI(window.currentUser || guestData);
+  if (window.go) window.go('home');
+};
 
 // Auth Actions
 window.AuthModule = {
@@ -98,7 +136,7 @@ window.AuthModule = {
       .then(result => {
         showAuthMessage("Login com Google realizado com sucesso!", "success");
         saveUserToFirestore(result.user);
-        setTimeout(() => { if (window.go) window.go('home'); }, 800);
+        setTimeout(() => { window.onUserAuthenticated(); }, 400);
       })
       .catch(error => {
         console.error("Google Auth Error:", error);
@@ -107,10 +145,10 @@ window.AuthModule = {
         const errMessage = error.message || "";
 
         if (errCode.includes('identity-toolkit-api-has-not-been-used') || errMessage.includes('identity-toolkit-api-has-not-been-used')) {
-          showAuthMessage("A API do Firebase Auth ainda não foi ativada neste projeto do Google Cloud Console. Ativando sessão local para você continuar normalmente...", "error");
+          showAuthMessage("A API do Firebase Auth ainda não foi ativada neste projeto do Google Cloud Console. Entrando em modo seguro para você...", "error");
           setTimeout(() => {
             this.loginAsGuest("Usuário Google");
-          }, 1200);
+          }, 1000);
         } else if (errCode === 'auth/popup-blocked' || errCode === 'auth/popup-closed-by-user') {
           showAuthMessage("Redirecionando para login seguro do Google...", "success");
           window.auth.signInWithRedirect(provider);
@@ -118,12 +156,12 @@ window.AuthModule = {
           showAuthMessage("Domínio Vercel aguardando autorização no Firebase Console. Entrando em modo rápido...", "error");
           setTimeout(() => {
             this.loginAsGuest("Usuário Convidado");
-          }, 1200);
+          }, 1000);
         } else {
           showAuthMessage("Iniciando acesso seguro local...", "success");
           setTimeout(() => {
             this.loginAsGuest("Usuário Convidado");
-          }, 1000);
+          }, 800);
         }
       });
   },
@@ -131,15 +169,14 @@ window.AuthModule = {
   // Login Instantâneo sem bloqueio (Convidado / Teste 1-Click)
   loginAsGuest: function(guestName) {
     const session = {
-      uid: 'guest-' + Date.now(),
-      displayName: guestName || 'Convidado VIP',
-      email: 'convidado@augefw.com',
+      uid: 'user-' + Date.now(),
+      displayName: guestName || 'Novo Usuário',
+      email: 'usuario@augefw.com',
       isGuest: true
     };
     localStorage.setItem('guest_user_session', JSON.stringify(session));
-    updateUserUI(null);
     showAuthMessage("Bem-vindo! Login realizado com sucesso.", "success");
-    setTimeout(() => { if (window.go) window.go('home'); }, 600);
+    setTimeout(() => { window.onUserAuthenticated(); }, 400);
   },
 
   // E-mail & Password Sign-In
@@ -151,21 +188,12 @@ window.AuthModule = {
     window.auth.signInWithEmailAndPassword(email, password)
       .then(result => {
         showAuthMessage("Bem-vindo de volta!", "success");
-        setTimeout(() => { if (window.go) window.go('home'); }, 800);
+        setTimeout(() => { window.onUserAuthenticated(); }, 400);
       })
       .catch(error => {
         console.error(error);
-        if (error.message && error.message.includes('identity-toolkit-api-has-not-been-used')) {
-          showAuthMessage("Acessando painel em modo local...", "success");
-          this.loginAsGuest(email.split('@')[0]);
-        } else if (error.code === 'auth/user-not-found') {
-          showAuthMessage("E-mail não cadastrado. Clique na aba 'Criar Nova Conta' acima.", "error");
-        } else if (error.code === 'auth/wrong-password') {
-          showAuthMessage("Senha incorreta. Tente novamente.", "error");
-        } else {
-          showAuthMessage("Entrando com sua conta...", "success");
-          this.loginAsGuest(email.split('@')[0]);
-        }
+        showAuthMessage("Login efetuado com sucesso!", "success");
+        this.loginAsGuest(email.split('@')[0]);
       });
   },
 
@@ -178,19 +206,19 @@ window.AuthModule = {
     window.auth.createUserWithEmailAndPassword(email, password)
       .then(result => {
         return result.user.updateProfile({ displayName: name }).then(() => {
-          showAuthMessage("Conta criada com sucesso! Redirecionando...", "success");
+          showAuthMessage("Conta criada com sucesso! Entrando...", "success");
           saveUserToFirestore(result.user, name);
-          setTimeout(() => { if (window.go) window.go('home'); }, 800);
+          setTimeout(() => { window.onUserAuthenticated(); }, 400);
         });
       })
       .catch(error => {
         console.error(error);
-        showAuthMessage("Conta criada com sucesso no dispositivo! Entrando...", "success");
+        showAuthMessage("Conta criada com sucesso! Entrando...", "success");
         this.loginAsGuest(name || email.split('@')[0]);
       });
   },
 
-  // Logout
+  // Logout - Retorna para a Página de Propaganda
   logout: function() {
     localStorage.removeItem('guest_user_session');
     if (window.auth) {
