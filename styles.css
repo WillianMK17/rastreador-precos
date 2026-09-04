@@ -989,10 +989,12 @@ h1.big-title {
 
 /* Navbar Footer */
 .tabbar {
-  position: absolute;
+  position: fixed;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1360px;
   display: flex;
   justify-content: space-around;
   background: rgba(30, 28, 24, 0.94);
