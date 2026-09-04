@@ -59,6 +59,8 @@ function updateUserUI(user) {
   const tabScan = document.getElementById('tab-scan');
   const tabList = document.getElementById('tab-list');
   const tabStock = document.getElementById('tab-stock');
+  const tabHistory = document.getElementById('tab-history');
+  const tabAnalysis = document.getElementById('tab-analysis');
 
   if (activeUser) {
     const displayName = activeUser.displayName || (activeUser.email ? activeUser.email.split('@')[0] : "Usuário");
@@ -82,6 +84,8 @@ function updateUserUI(user) {
     if (tabScan) tabScan.style.display = 'flex';
     if (tabList) tabList.style.display = 'flex';
     if (tabStock) tabStock.style.display = 'flex';
+    if (tabHistory) tabHistory.style.display = 'flex';
+    if (tabAnalysis) tabAnalysis.style.display = 'flex';
 
     // Se estiver na tela de propaganda ou auth após logar, vai pro painel
     const currentActiveScreen = document.querySelector('.screen.active');
@@ -103,6 +107,8 @@ function updateUserUI(user) {
     if (tabScan) tabScan.style.display = 'none';
     if (tabList) tabList.style.display = 'none';
     if (tabStock) tabStock.style.display = 'none';
+    if (tabHistory) tabHistory.style.display = 'none';
+    if (tabAnalysis) tabAnalysis.style.display = 'none';
 
     // Redireciona para a página de propaganda
     const currentActiveScreen = document.querySelector('.screen.active');

@@ -239,6 +239,33 @@ html, body {
   transform: scale(1.03);
 }
 
+.profile-nav-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  border-radius: 100px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.profile-nav-btn:hover {
+  transform: scale(1.03);
+}
+
+.profile-nav-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-main);
+}
+
 /* Screen Layouts */
 .screen {
   flex: 1;

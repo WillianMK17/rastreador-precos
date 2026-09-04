@@ -33,7 +33,7 @@ window.setViewportMode = function(mode) {
 };
 
 // Navigation Function
-const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock','month-detail'];
+const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock','month-detail','analysis'];
 
 window.go = function(id) {
   screens.forEach(s => {
@@ -45,7 +45,7 @@ window.go = function(id) {
   if (target) target.classList.add('active');
 
   // Active Tab Highlight
-  ['landing','home','scan','history','list','stock','auth'].forEach(t => {
+  ['landing','home','scan','history','list','stock','auth','analysis'].forEach(t => {
     const tabEl = document.getElementById('tab-' + t);
     if (tabEl) tabEl.classList.remove('active');
   });
@@ -73,6 +73,9 @@ window.go = function(id) {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else if (id === 'month-detail') {
     renderMonthDetail();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
+  } else if (id === 'analysis') {
+    renderProductAnalysis();
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
@@ -424,6 +427,115 @@ function renderMonthDetail() {
         }).join('')}
       </div>
     `;
+  });
+}
+
+function buildProductPriceHistory(receipts) {
+  const byKey = {};
+  receipts.forEach(r => {
+    if (!r.itemsAvailable) return;
+    const date = getReceiptDate(r);
+    if (!date) return;
+    (r.items || []).forEach(item => {
+      if (!item.matchKey) return;
+      if (!byKey[item.matchKey]) byKey[item.matchKey] = { description: item.description, entries: [] };
+      byKey[item.matchKey].entries.push({ date, price: item.unitPrice, storeName: r.storeName });
+    });
+  });
+
+  return Object.values(byKey)
+    .map(product => {
+      product.entries.sort((a, b) => a.date - b.date);
+      return product;
+    })
+    .filter(product => product.entries.length >= 2);
+}
+
+function buildPriceLineChartSvg(entries) {
+  const width = 280;
+  const height = 90;
+  const padX = 12;
+  const padTop = 18;
+  const padBottom = 18;
+  const prices = entries.map(e => e.price);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const range = maxPrice - minPrice || 1;
+
+  const chartWidth = width - padX * 2;
+  const chartHeight = height - padTop - padBottom;
+  const stepX = entries.length > 1 ? chartWidth / (entries.length - 1) : 0;
+
+  const points = entries.map((e, i) => ({
+    x: padX + stepX * i,
+    y: padTop + chartHeight - ((e.price - minPrice) / range) * chartHeight,
+    price: e.price
+  }));
+
+  const pathD = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+  const circles = points.map(p =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="var(--accent-gold)" stroke="var(--card-bg)" stroke-width="2" />`
+  ).join('');
+
+  const lastPoint = points[points.length - 1];
+  const firstLabel = `<text x="${points[0].x}" y="${points[0].y - 10}" font-size="9" font-family="var(--font-mono)" fill="var(--text-muted)" text-anchor="start">${formatBRL(points[0].price)}</text>`;
+  const lastLabel = `<text x="${lastPoint.x}" y="${lastPoint.y - 10}" font-size="9" font-family="var(--font-mono)" fill="var(--text-main)" font-weight="700" text-anchor="end">${formatBRL(lastPoint.price)}</text>`;
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; display:block;" role="img" aria-label="Gráfico de evolução de preço">
+      <path d="${pathD}" fill="none" stroke="var(--accent-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      ${circles}
+      ${firstLabel}
+      ${lastLabel}
+    </svg>
+  `;
+}
+
+function renderProductAnalysis() {
+  const container = document.getElementById('analysis-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+      Carregando...
+    </div>
+  `;
+
+  window.StoreModule.loadReceipts().then(receipts => {
+    const products = buildProductPriceHistory(receipts);
+
+    if (products.length === 0) {
+      container.innerHTML = `
+        <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+          Compre o mesmo produto mais de uma vez para ver a evolução do preço aqui.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = products.map(product => {
+      const first = product.entries[0];
+      const last = product.entries[product.entries.length - 1];
+      const changePct = first.price ? ((last.price - first.price) / first.price) * 100 : 0;
+      const isRising = changePct > 0;
+      const trendText = isRising
+        ? '▲ +' + changePct.toFixed(1).replace('.', ',') + '%'
+        : changePct < 0
+          ? '▼ ' + changePct.toFixed(1).replace('.', ',') + '%'
+          : '● estável';
+      const pillClass = 'trend-pill' + (isRising ? '' : ' down');
+
+      return `
+        <div class="receipt-card" style="margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; gap:8px;">
+            <div class="item-name">${product.description}</div>
+            <span class="${pillClass}" style="font-size:10px; flex-shrink:0;">${trendText}</span>
+          </div>
+          <div class="item-meta" style="margin-bottom:6px;">${product.entries.length} compras registradas</div>
+          ${buildPriceLineChartSvg(product.entries)}
+        </div>
+      `;
+    }).join('');
   });
 }
 

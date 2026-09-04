@@ -52,6 +52,10 @@
           <div class="user-avatar" id="user-avatar">?</div>
           <span id="user-status" style="font-size:11px; font-weight:600;">Entrar</span>
         </div>
+        <button class="profile-nav-btn" id="tab-auth" onclick="go('auth')">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          ENTRAR
+        </button>
         <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Alternar Tema">
           <span id="theme-toggle-label">🌙 Escuro</span>
         </button>
@@ -505,6 +509,22 @@
       </div>
     </div>
 
+    <!-- ===== SCREEN 11: PRODUCT ANALYSIS (PRICE OVER TIME) ===== -->
+    <div class="screen" id="analysis">
+      <div class="eyebrow">Análise de Preços</div>
+      <h1 class="big-title">Evolução por Produto</h1>
+      <p class="subtitle">Como o preço de cada produto mudou entre uma compra e outra.</p>
+
+      <div id="analysis-container">
+        <!-- Rendered dynamically via js/ui.js -->
+      </div>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
     <!-- ===== BOTTOM TABBAR ===== -->
     <div class="tabbar">
       <button class="tab-btn active" id="tab-landing" onclick="go('landing')">
@@ -527,9 +547,13 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
         ESTOQUE
       </button>
-      <button class="tab-btn" id="tab-auth" onclick="go('auth')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 4 4-4H8a4 4 0 0 4-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        ENTRAR
+      <button class="tab-btn" id="tab-history" onclick="go('history')" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        HISTÓRICO
+      </button>
+      <button class="tab-btn" id="tab-analysis" onclick="go('analysis')" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-4-4L3 15.5"/></svg>
+        ANÁLISE
       </button>
     </div>
 
