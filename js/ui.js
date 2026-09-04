@@ -166,7 +166,7 @@ function renderReceiptsHistory() {
         <div class="item-row">
           <div>
             <div class="item-name">${r.storeName || 'Loja não identificada'}</div>
-            <div class="item-meta">${r.emittedAt || ''}</div>
+            <div class="item-meta">${r.emittedAt || ''}${r.dueDate ? ' · vence ' + r.dueDate.split('-').reverse().join('/') : ''}</div>
           </div>
           <div style="text-align:right;">
             <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(r.totalValue)}</div>
@@ -716,17 +716,27 @@ function renderStock() {
 window.saveManualBill = function() {
   const providerInput = document.getElementById('bill-provider');
   const priceInput = document.getElementById('bill-price');
+  const dueDateInput = document.getElementById('bill-due-date');
   const provider = (providerInput.value || '').trim();
   const price = parseFloat(priceInput.value || 0);
+  const dueDateValue = dueDateInput ? dueDateInput.value : '';
 
   if (!provider || !price) {
     alert('Preencha a concessionária e o valor da conta.');
     return;
   }
 
-  const now = new Date();
   const pad = n => String(n).padStart(2, '0');
-  const emittedAt = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':00';
+  const now = new Date();
+
+  // Com vencimento informado, a conta entra no mês do vencimento (não no mês do lançamento)
+  let emittedAt;
+  if (dueDateValue) {
+    const [yyyy, mm, dd] = dueDateValue.split('-');
+    emittedAt = dd + '/' + mm + '/' + yyyy + ' 12:00:00';
+  } else {
+    emittedAt = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':00';
+  }
 
   const receipt = {
     chaveAcesso: 'manual-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
@@ -734,6 +744,7 @@ window.saveManualBill = function() {
     storeCnpj: '',
     storeAddress: '',
     emittedAt: emittedAt,
+    dueDate: dueDateValue || null,
     totalValue: price,
     itemsAvailable: true,
     source: 'manual',
@@ -754,6 +765,7 @@ window.saveManualBill = function() {
     }
     providerInput.value = '';
     priceInput.value = '';
+    if (dueDateInput) dueDateInput.value = '';
     alert('Conta registrada com sucesso!');
     if (window.go) window.go('history');
   }).catch(err => {

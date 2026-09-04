@@ -395,7 +395,11 @@
         <div class="item-row">
           <input type="number" id="bill-price" step="0.01" placeholder="Valor da conta (R$ 0,00)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
         </div>
+        <div class="item-row">
+          <input type="date" id="bill-due-date" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
+        </div>
       </div>
+      <div class="subtitle" style="max-width:500px; margin:-8px auto 16px; font-size:12px;">⌁ informe o vencimento pra conta entrar no mês certo do Painel e do Histórico, mesmo se você lançar antes ou depois da data</div>
       <button class="btn-cta" style="max-width:500px; margin:0 auto; background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="window.saveManualBill()">
         Salvar Conta
       </button>
