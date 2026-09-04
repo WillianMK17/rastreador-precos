@@ -62,10 +62,47 @@ window.go = function(id) {
         window.ScannerModule.handleReceiptParsed(data);
       });
     }
+  } else if (id === 'history') {
+    renderReceiptsHistory();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   }
 };
+
+function renderReceiptsHistory() {
+  const container = document.getElementById('receipts-history-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+      Carregando cupons...
+    </div>
+  `;
+
+  window.StoreModule.loadReceipts().then(receipts => {
+    if (!receipts || receipts.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+          Nenhum histórico detalhado registrado. Escaneie um cupom para comparar automaticamente.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = receipts.map(r => `
+      <div class="item-row">
+        <div>
+          <div class="item-name">${r.storeName || 'Loja não identificada'}</div>
+          <div class="item-meta">${r.emittedAt || ''}${r.itemsAvailable ? ' · ' + r.items.length + ' itens' : ' · itens indisponíveis'}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">R$ ${r.totalValue ? r.totalValue.toFixed(2).replace('.', ',') : '--,--'}</div>
+        </div>
+      </div>
+    `).join('');
+  });
+}
 
 // Theme Controller (Escuro Terroso vs Claro Pastel Moderno)
 function initTheme() {

@@ -380,10 +380,8 @@
       <h1 class="big-title">Histórico de Compras</h1>
       <p class="subtitle">Acompanhe a variação de valores e compras registradas.</p>
 
-      <div class="receipt-card">
-        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
-          Nenhum histórico detalhado registrado. Escaneie um cupom para comparar automaticamente.
-        </div>
+      <div class="receipt-card" id="receipts-history-container">
+        <!-- Rendered dynamically via js/ui.js -->
       </div>
 
       <button class="btn-cta" style="background:transparent; border:1px solid var(--card-border); color:var(--text-main); max-width:400px; margin:0 auto;" onclick="go('compare')">
