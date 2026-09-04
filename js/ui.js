@@ -478,8 +478,21 @@ function buildPriceLineChartSvg(entries) {
   ).join('');
 
   const lastPoint = points[points.length - 1];
+  const lastIndex = points.length - 1;
   const firstLabel = `<text x="${points[0].x}" y="${points[0].y - 10}" font-size="9" font-family="var(--font-mono)" fill="var(--text-muted)" text-anchor="start">${formatBRL(points[0].price)}</text>`;
   const lastLabel = `<text x="${lastPoint.x}" y="${lastPoint.y - 10}" font-size="9" font-family="var(--font-mono)" fill="var(--text-main)" font-weight="700" text-anchor="end">${formatBRL(lastPoint.price)}</text>`;
+
+  const minIndex = prices.indexOf(minPrice);
+  const maxIndex = prices.indexOf(maxPrice);
+  let extremeLabels = '';
+  if (minIndex !== 0 && minIndex !== lastIndex) {
+    const p = points[minIndex];
+    extremeLabels += `<text x="${p.x.toFixed(1)}" y="${p.y - 10}" font-size="9" font-family="var(--font-mono)" fill="var(--price-down)" text-anchor="middle">${formatBRL(p.price)}</text>`;
+  }
+  if (maxIndex !== 0 && maxIndex !== lastIndex && maxIndex !== minIndex) {
+    const p = points[maxIndex];
+    extremeLabels += `<text x="${p.x.toFixed(1)}" y="${p.y - 10}" font-size="9" font-family="var(--font-mono)" fill="var(--price-up)" text-anchor="middle">${formatBRL(p.price)}</text>`;
+  }
 
   const monthLabels = entries.map((e, i) => {
     const label = MONTH_NAMES[e.date.getMonth()].slice(0, 3) + '/' + String(e.date.getFullYear()).slice(2);
@@ -492,6 +505,7 @@ function buildPriceLineChartSvg(entries) {
       ${circles}
       ${firstLabel}
       ${lastLabel}
+      ${extremeLabels}
       ${monthLabels}
     </svg>
   `;
