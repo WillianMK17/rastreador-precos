@@ -133,16 +133,22 @@ window.AuthModule = {
       prompt: 'select_account'
     });
 
-    showAuthMessage("Redirecionando para o login seguro do Google...", "success");
+    showAuthMessage("Conectando com o Google...", "success");
 
-    // Usa o Redirecionamento Direto do Firebase para evitar bloqueios de pop-up do navegador
-    window.auth.signInWithRedirect(provider).catch(error => {
-      console.error("Google Auth Redirect Error:", error);
-      showAuthMessage("Iniciando acesso rápido no aplicativo...", "error");
-      setTimeout(() => {
-        this.loginAsGuest("Usuário Google");
-      }, 1000);
-    });
+    window.auth.signInWithPopup(provider)
+      .then(result => {
+        showAuthMessage("Login com Google realizado com sucesso!", "success");
+        saveUserToFirestore(result.user);
+        setTimeout(() => { window.onUserAuthenticated(); }, 400);
+      })
+      .catch(error => {
+        console.warn("Popup error/blocked, falling back to redirect:", error);
+        showAuthMessage("Redirecionando para o login do Google...", "success");
+        window.auth.signInWithRedirect(provider).catch(err => {
+          console.error("Google Auth Redirect Error:", err);
+          this.loginAsGuest("Usuário Google");
+        });
+      });
   },
 
   // Login Instantâneo sem bloqueio (Convidado / Teste 1-Click)
