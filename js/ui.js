@@ -65,17 +65,36 @@ window.go = function(id) {
   } else if (id === 'history') {
     renderReceiptsHistory();
     if (window.ScannerModule) window.ScannerModule.stopScanner();
+  } else if (id === 'home') {
+    renderHomePanel();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   }
 };
+
+function formatBRL(value) {
+  return 'R$ ' + (value || 0).toFixed(2).replace('.', ',');
+}
+
+function renderReceiptItemsList(receipt) {
+  if (!receipt.itemsAvailable || !receipt.items || receipt.items.length === 0) {
+    return `<div class="item-meta" style="padding:8px 0 0; opacity:.7;">Itens indisponíveis para este cupom.</div>`;
+  }
+  return receipt.items.map(item => `
+    <div class="item-row" style="padding-top:8px; padding-bottom:8px; border-top:1px dashed var(--card-border);">
+      <div class="item-meta">${item.description} <span style="opacity:.6;">(${item.quantity} ${item.unit})</span></div>
+      <div style="font-family:var(--font-mono); font-size:13px;">${formatBRL(item.totalPrice)}</div>
+    </div>
+  `).join('');
+}
 
 function renderReceiptsHistory() {
   const container = document.getElementById('receipts-history-container');
   if (!container) return;
 
   container.innerHTML = `
-    <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+    <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
       Carregando cupons...
     </div>
   `;
@@ -83,7 +102,7 @@ function renderReceiptsHistory() {
   window.StoreModule.loadReceipts().then(receipts => {
     if (!receipts || receipts.length === 0) {
       container.innerHTML = `
-        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+        <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
           Nenhum histórico detalhado registrado. Escaneie um cupom para comparar automaticamente.
         </div>
       `;
@@ -91,16 +110,64 @@ function renderReceiptsHistory() {
     }
 
     container.innerHTML = receipts.map(r => `
-      <div class="item-row">
-        <div>
-          <div class="item-name">${r.storeName || 'Loja não identificada'}</div>
-          <div class="item-meta">${r.emittedAt || ''}${r.itemsAvailable ? ' · ' + r.items.length + ' itens' : ' · itens indisponíveis'}</div>
+      <div class="receipt-card" style="margin-bottom:12px;">
+        <div class="item-row">
+          <div>
+            <div class="item-name">${r.storeName || 'Loja não identificada'}</div>
+            <div class="item-meta">${r.emittedAt || ''}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(r.totalValue)}</div>
+          </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">R$ ${r.totalValue ? r.totalValue.toFixed(2).replace('.', ',') : '--,--'}</div>
-        </div>
+        ${renderReceiptItemsList(r)}
       </div>
     `).join('');
+  });
+}
+
+function renderHomePanel() {
+  const valueEl = document.getElementById('home-total-spent-value');
+  const subtitleEl = document.getElementById('home-total-spent-subtitle');
+  const itemsContainer = document.getElementById('home-recent-items-container');
+  if (!valueEl || !itemsContainer) return;
+
+  window.StoreModule.loadReceipts().then(receipts => {
+    const totalSpent = receipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    valueEl.textContent = formatBRL(totalSpent);
+    subtitleEl.textContent = receipts.length === 0
+      ? 'Nenhum cupom escaneado ainda nesta conta.'
+      : receipts.length + ' cupom(ns) escaneado(s) nesta conta.';
+
+    const recentItems = receipts
+      .filter(r => r.itemsAvailable)
+      .flatMap(r => r.items.map(item => Object.assign({}, item, { storeName: r.storeName })))
+      .slice(0, 10);
+
+    if (recentItems.length === 0) {
+      itemsContainer.innerHTML = `
+        <div class="receipt-card">
+          <div style="text-align:center; padding:24px 10px; color:var(--text-muted); font-size:13.5px;">
+            📄 Seu histórico está limpo. Escaneie um cupom fiscal abaixo para registrar seu primeiro produto!
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    itemsContainer.innerHTML = `
+      <div class="receipt-card">
+        ${recentItems.map(item => `
+          <div class="item-row">
+            <div>
+              <div class="item-name">${item.description}</div>
+              <div class="item-meta">${item.storeName || ''}</div>
+            </div>
+            <div style="font-family:var(--font-mono); font-weight:700;">${formatBRL(item.totalPrice)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   });
 }
 

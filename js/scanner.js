@@ -119,6 +119,7 @@ window.ScannerModule = {
 
     try {
       await window.StoreModule.saveReceipt(receipt);
+      window.StoreModule.addItemsToStock(receipt.items);
       showAuthMessage("Cupom Fiscal registrado com sucesso!", "success");
       if (window.go) window.go('history');
     } catch (err) {

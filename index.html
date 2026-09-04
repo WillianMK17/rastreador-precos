@@ -233,8 +233,8 @@
       <div class="desktop-grid-2" style="margin-bottom:16px;">
         <div class="receipt-card">
           <div class="eyebrow" style="margin:0;">Total de Gastos Em Cupons</div>
-          <div class="total-num">R$ 0,00</div>
-          <div class="subtitle" style="margin:6px 0 0;">Nenhum cupom escaneado ainda nesta conta.</div>
+          <div class="total-num" id="home-total-spent-value">R$ 0,00</div>
+          <div class="subtitle" style="margin:6px 0 0;" id="home-total-spent-subtitle">Nenhum cupom escaneado ainda nesta conta.</div>
         </div>
 
         <div class="index-box" style="margin-top:0;">
@@ -250,10 +250,8 @@
       </div>
 
       <div class="eyebrow">Itens Registrados</div>
-      <div class="receipt-card">
-        <div style="text-align:center; padding:24px 10px; color:var(--text-muted); font-size:13.5px;">
-          📄 Seu histórico está limpo. Escaneie um cupom fiscal abaixo para registrar seu primeiro produto!
-        </div>
+      <div id="home-recent-items-container">
+        <!-- Rendered dynamically via js/ui.js -->
       </div>
 
       <button class="btn-cta" onclick="go('consent')" style="max-width:400px; margin:0 auto;">
@@ -380,7 +378,7 @@
       <h1 class="big-title">Histórico de Compras</h1>
       <p class="subtitle">Acompanhe a variação de valores e compras registradas.</p>
 
-      <div class="receipt-card" id="receipts-history-container">
+      <div id="receipts-history-container">
         <!-- Rendered dynamically via js/ui.js -->
       </div>
 

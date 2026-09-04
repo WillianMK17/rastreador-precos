@@ -80,5 +80,25 @@ window.StoreModule = {
       .orderBy('scannedAt', 'desc')
       .get()
       .then(snapshot => snapshot.docs.map(doc => Object.assign({ id: doc.id }, doc.data())));
+  },
+
+  addItemsToStock: function(items) {
+    items.forEach(item => {
+      const qty = Math.max(1, Math.round(item.quantity));
+      const existing = item.code ? window.AppState.stock.find(s => s.code === item.code) : null;
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        window.AppState.stock.push({
+          id: 'stock-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+          code: item.code,
+          name: item.description,
+          qty: qty,
+          meta: item.unit || 'via cupom fiscal',
+          low: false
+        });
+      }
+    });
+    window.saveState();
   }
 };
