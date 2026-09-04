@@ -129,6 +129,9 @@ window.AuthModule = {
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.addScope('email');
     provider.addScope('profile');
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
 
     showAuthMessage("Conectando com Google...", "success");
 
@@ -144,24 +147,20 @@ window.AuthModule = {
         const errCode = error.code || "";
         const errMessage = error.message || "";
 
-        if (errCode.includes('identity-toolkit-api-has-not-been-used') || errMessage.includes('identity-toolkit-api-has-not-been-used')) {
-          showAuthMessage("A API do Firebase Auth ainda não foi ativada neste projeto do Google Cloud Console. Entrando em modo seguro para você...", "error");
-          setTimeout(() => {
-            this.loginAsGuest("Usuário Google");
-          }, 1000);
-        } else if (errCode === 'auth/popup-blocked' || errCode === 'auth/popup-closed-by-user') {
+        if (errCode === 'auth/operation-not-allowed') {
+          showAuthMessage("Ative o provedor Google em Firebase Console -> Authentication -> Método de login.", "error");
+        } else if (errCode.includes('identity-toolkit-api-has-not-been-used') || errMessage.includes('identity-toolkit-api-has-not-been-used')) {
+          showAuthMessage("A API do Firebase Auth ainda não foi ativada neste projeto do Google Cloud Console.", "error");
+        } else if (errCode === 'auth/popup-blocked') {
+          showAuthMessage("Redirecionando para a página de login do Google...", "success");
+          window.auth.signInWithRedirect(provider);
+        } else if (errCode === 'auth/popup-closed-by-user') {
+          showAuthMessage("Janela de login fechada antes da seleção da conta.", "error");
+        } else if (errCode === 'auth/unauthorized-domain') {
+          showAuthMessage("Domínio Vercel aguardando autorização nos Domínios Autorizados do Firebase.", "error");
+        } else {
           showAuthMessage("Redirecionando para login seguro do Google...", "success");
           window.auth.signInWithRedirect(provider);
-        } else if (errCode === 'auth/unauthorized-domain') {
-          showAuthMessage("Domínio Vercel aguardando autorização no Firebase Console. Entrando em modo rápido...", "error");
-          setTimeout(() => {
-            this.loginAsGuest("Usuário Convidado");
-          }, 1000);
-        } else {
-          showAuthMessage("Iniciando acesso seguro local...", "success");
-          setTimeout(() => {
-            this.loginAsGuest("Usuário Convidado");
-          }, 800);
         }
       });
   },
