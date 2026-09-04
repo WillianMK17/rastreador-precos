@@ -148,9 +148,12 @@ window.AuthModule = {
         const errMessage = error.message || "";
 
         if (errCode === 'auth/operation-not-allowed') {
-          showAuthMessage("Ative o provedor Google em Firebase Console -> Authentication -> Método de login.", "error");
+          showAuthMessage('Ative o provedor Google em <a href="https://console.firebase.google.com/project/willian-rastreador-precos/authentication/providers" target="_blank" style="color:#ffcc00;text-decoration:underline;">Firebase Console ➔ Sign-in method</a>.', "error");
         } else if (errCode.includes('identity-toolkit-api-has-not-been-used') || errMessage.includes('identity-toolkit-api-has-not-been-used')) {
-          showAuthMessage("A API do Firebase Auth ainda não foi ativada neste projeto do Google Cloud Console.", "error");
+          showAuthMessage('API do Auth desativada no Google Cloud. <a href="https://console.developers.google.com/apis/api/identitytoolkit.googleapis.com/overview?project=493697743919" target="_blank" style="color:#ffcc00;font-weight:bold;text-decoration:underline;">Clique aqui para Ativar (1-Clique)</a>. Entrando no app para você...', "error");
+          setTimeout(() => {
+            this.loginAsGuest("Usuário Google");
+          }, 1800);
         } else if (errCode === 'auth/popup-blocked') {
           showAuthMessage("Redirecionando para a página de login do Google...", "success");
           window.auth.signInWithRedirect(provider);
@@ -249,7 +252,7 @@ function saveUserToFirestore(user, customName) {
 function showAuthMessage(msg, type) {
   const el = document.getElementById('auth-message');
   if (el) {
-    el.textContent = msg;
+    el.innerHTML = msg;
     el.className = 'auth-msg ' + type;
   }
 }
