@@ -251,11 +251,48 @@ function buildMonthlySpendingHistory(receipts) {
   return Object.values(totalsByMonthKey).sort((a, b) => (b.year - a.year) || (b.month - a.month));
 }
 
+function buildProductAveragePricesForMonth(receipts, year, month) {
+  const sums = {};
+  receipts.forEach(r => {
+    if (!r.itemsAvailable || !isReceiptInMonth(r, year, month)) return;
+    (r.items || []).forEach(item => {
+      if (!item.matchKey) return;
+      if (!sums[item.matchKey]) sums[item.matchKey] = { total: 0, count: 0 };
+      sums[item.matchKey].total += item.unitPrice;
+      sums[item.matchKey].count += 1;
+    });
+  });
+  const averages = {};
+  Object.keys(sums).forEach(key => {
+    averages[key] = sums[key].total / sums[key].count;
+  });
+  return averages;
+}
+
+function calculatePersonalPriceIndex(receipts, year, month) {
+  const prevMonthDate = new Date(year, month - 1, 1);
+  const currentAverages = buildProductAveragePricesForMonth(receipts, year, month);
+  const previousAverages = buildProductAveragePricesForMonth(receipts, prevMonthDate.getFullYear(), prevMonthDate.getMonth());
+
+  const matchedKeys = Object.keys(currentAverages).filter(key => previousAverages[key] !== undefined);
+  if (matchedKeys.length === 0) return null;
+
+  const percentChanges = matchedKeys.map(key =>
+    ((currentAverages[key] - previousAverages[key]) / previousAverages[key]) * 100
+  );
+  const avgChangePct = percentChanges.reduce((sum, v) => sum + v, 0) / percentChanges.length;
+
+  return { changePct: avgChangePct, productCount: matchedKeys.length };
+}
+
 function renderHomePanel() {
   const valueEl = document.getElementById('home-total-spent-value');
   const subtitleEl = document.getElementById('home-total-spent-subtitle');
   const monthlyHistoryContainer = document.getElementById('home-monthly-history-container');
   const itemsContainer = document.getElementById('home-recent-items-container');
+  const indexValueEl = document.getElementById('home-price-index-value');
+  const indexPillEl = document.getElementById('home-price-index-pill');
+  const indexSubtitleEl = document.getElementById('home-price-index-subtitle');
   if (!valueEl || !itemsContainer) return;
 
   window.StoreModule.loadReceipts().then(receipts => {
@@ -267,6 +304,23 @@ function renderHomePanel() {
     subtitleEl.textContent = receiptsThisMonth.length === 0
       ? 'Nenhum cupom escaneado ainda este mês.'
       : receiptsThisMonth.length + ' cupom(ns) escaneado(s) este mês.';
+
+    if (indexValueEl && indexPillEl && indexSubtitleEl) {
+      const index = calculatePersonalPriceIndex(receipts, now.getFullYear(), now.getMonth());
+      if (!index) {
+        indexValueEl.textContent = '0,0%';
+        indexPillEl.textContent = '● baseline inicial';
+        indexPillEl.className = 'trend-pill down';
+        indexSubtitleEl.textContent = 'Compre os mesmos produtos em mais de um mês para começar a calcular.';
+      } else {
+        const sign = index.changePct > 0 ? '+' : '';
+        indexValueEl.textContent = sign + index.changePct.toFixed(1).replace('.', ',') + '%';
+        const isRising = index.changePct > 0;
+        indexPillEl.textContent = isRising ? '▲ subindo' : (index.changePct < 0 ? '▼ descendo' : '● estável');
+        indexPillEl.className = 'trend-pill' + (isRising ? '' : ' down');
+        indexSubtitleEl.textContent = 'Baseado em ' + index.productCount + ' produto(s) recomprado(s) este mês vs. mês anterior.';
+      }
+    }
 
     if (monthlyHistoryContainer) {
       const monthlyHistory = buildMonthlySpendingHistory(receipts);
