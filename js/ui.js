@@ -33,7 +33,7 @@ window.setViewportMode = function(mode) {
 };
 
 // Navigation Function
-const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock'];
+const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock','month-detail'];
 
 window.go = function(id) {
   screens.forEach(s => {
@@ -50,7 +50,7 @@ window.go = function(id) {
     if (tabEl) tabEl.classList.remove('active');
   });
 
-  const tabMap = { manual: 'scan', consent: 'scan', compare: 'history', 'list-result': 'list' };
+  const tabMap = { manual: 'scan', consent: 'scan', compare: 'history', 'list-result': 'list', 'month-detail': 'home' };
   const tabId = tabMap[id] || id;
   const activeTab = document.getElementById('tab-' + tabId);
   if (activeTab) activeTab.classList.add('active');
@@ -70,6 +70,9 @@ window.go = function(id) {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else if (id === 'compare') {
     renderMarketComparison();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
+  } else if (id === 'month-detail') {
+    renderMonthDetail();
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
@@ -271,8 +274,8 @@ function renderHomePanel() {
         ? `<div class="receipt-card" style="text-align:center; padding:16px; color:var(--text-muted); font-size:13px;">Sem histórico de meses anteriores ainda.</div>`
         : `<div class="receipt-card">
             ${monthlyHistory.map(m => `
-              <div class="item-row">
-                <div class="item-name">${MONTH_NAMES[m.month]} de ${m.year}</div>
+              <div class="item-row" style="cursor:pointer;" onclick="window.openMonthDetail(${m.year}, ${m.month})">
+                <div class="item-name">${MONTH_NAMES[m.month]} de ${m.year} ›</div>
                 <div style="font-family:var(--font-mono); font-weight:700;">${formatBRL(m.total)}</div>
               </div>
             `).join('')}
@@ -306,6 +309,65 @@ function renderHomePanel() {
             <div style="font-family:var(--font-mono); font-weight:700;">${formatBRL(item.totalPrice)}</div>
           </div>
         `).join('')}
+      </div>
+    `;
+  });
+}
+
+window.openMonthDetail = function(year, month) {
+  window.SelectedMonth = { year, month };
+  if (window.go) window.go('month-detail');
+};
+
+function renderMonthDetail() {
+  const container = document.getElementById('month-detail-container');
+  const titleEl = document.getElementById('month-detail-title');
+  if (!container || !window.SelectedMonth) return;
+
+  const { year, month } = window.SelectedMonth;
+  if (titleEl) titleEl.textContent = MONTH_NAMES[month] + ' de ' + year;
+
+  container.innerHTML = `
+    <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+      Carregando...
+    </div>
+  `;
+
+  window.StoreModule.loadReceipts().then(receipts => {
+    const receiptsInMonth = receipts.filter(r => isReceiptInMonth(r, year, month));
+    const totalsByCategory = {};
+    receiptsInMonth.forEach(r => {
+      const cat = r.category || 'Outros';
+      totalsByCategory[cat] = (totalsByCategory[cat] || 0) + (r.totalValue || 0);
+    });
+
+    const categories = Object.entries(totalsByCategory).sort((a, b) => b[1] - a[1]);
+
+    if (categories.length === 0) {
+      container.innerHTML = `
+        <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+          Nenhum cupom registrado neste mês.
+        </div>
+      `;
+      return;
+    }
+
+    const maxValue = categories[0][1];
+
+    container.innerHTML = `
+      <div class="receipt-card">
+        ${categories.map(([category, value], i) => {
+          const pct = Math.max(6, Math.round((value / maxValue) * 100));
+          return `
+          <div class="compare-bar-row">
+            <div class="compare-bar-label">${category}</div>
+            <div class="compare-bar-track">
+              <div class="compare-bar-fill${i === 0 ? ' best' : ''}" style="width:${pct}%"></div>
+            </div>
+            <div class="compare-bar-value">${formatBRL(value)}</div>
+          </div>
+        `;
+        }).join('')}
       </div>
     `;
   });

@@ -52,6 +52,19 @@ window.resetAllData = function() {
   window.saveState();
 };
 
+window.CATEGORY_RULES = [
+  { category: 'Posto de Combustível', pattern: /POSTO|COMBUSTIVEL|AUTO POSTO/ },
+  { category: 'Farmácia', pattern: /FARMA|DROGARIA|DROGASIL|PACHECO/ },
+  { category: 'Bar/Restaurante', pattern: /\bBAR\b|RESTAURANTE|LANCHONETE|PIZZARIA|CHURRASCARIA|PADARIA|\bCAFE\b/ },
+  { category: 'Mercado', pattern: /MERCADO|SUPERMERCADO|ATACAD|HIPERMERCADO|COMERCIO/ }
+];
+
+function categorizeStore(storeName) {
+  const name = (storeName || '').toUpperCase();
+  const match = window.CATEGORY_RULES.find(rule => rule.pattern.test(name));
+  return match ? match.category : 'Outros';
+}
+
 function normalizeProductName(text) {
   const combiningDiacritics = new RegExp('[̀-ͯ]', 'g');
   return (text || '')
@@ -87,6 +100,7 @@ window.StoreModule = {
       }));
       return docRef.set(Object.assign({}, receipt, {
         items: itemsWithMatchKey,
+        category: categorizeStore(receipt.storeName),
         scannedAt: firebase.firestore.FieldValue.serverTimestamp()
       }), { merge: true }).then(() => ({ duplicate: false }));
     });
