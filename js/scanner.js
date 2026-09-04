@@ -219,7 +219,11 @@ window.ScannerModule = {
     };
 
     try {
-      await window.StoreModule.saveReceipt(receipt);
+      const result = await window.StoreModule.saveReceipt(receipt);
+      if (result && result.duplicate) {
+        showScanMessage("Esse cupom já tinha sido lido antes — não foi registrado de novo.", "error");
+        return;
+      }
       window.StoreModule.addItemsToStock(receipt.items);
       showScanMessage("Cupom Fiscal registrado com sucesso!", "success");
       if (window.go) window.go('history');
@@ -235,7 +239,7 @@ window.ScannerModule = {
 
   _saveFallback: async function(chave) {
     try {
-      await window.StoreModule.saveReceipt({
+      const result = await window.StoreModule.saveReceipt({
         chaveAcesso: chave,
         storeName: '',
         storeCnpj: '',
@@ -245,6 +249,10 @@ window.ScannerModule = {
         itemsAvailable: false,
         items: []
       });
+      if (result && result.duplicate) {
+        showScanMessage("Esse cupom já tinha sido lido antes — não foi registrado de novo.", "error");
+        return;
+      }
       if (window.go) window.go('history');
     } catch (err) {
       if (err.message === 'not-authenticated') {

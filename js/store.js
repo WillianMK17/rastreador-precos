@@ -71,16 +71,25 @@ window.StoreModule = {
       return Promise.reject(new Error('firestore-unavailable'));
     }
     const uid = window.auth.currentUser.uid;
-    const itemsWithMatchKey = (receipt.items || []).map(item => Object.assign({}, item, {
-      matchKey: normalizeProductName(item.description)
-    }));
-    return window.db
-      .collection('users').doc(uid)
-      .collection('receipts').doc(receipt.chaveAcesso)
-      .set(Object.assign({}, receipt, {
+    const docRef = window.db.collection('users').doc(uid).collection('receipts').doc(receipt.chaveAcesso);
+
+    return docRef.get().then(docSnapshot => {
+      if (docSnapshot.exists) {
+        const existing = docSnapshot.data();
+        const isUpgradeFromFallback = !existing.itemsAvailable && receipt.itemsAvailable;
+        if (!isUpgradeFromFallback) {
+          return { duplicate: true };
+        }
+      }
+
+      const itemsWithMatchKey = (receipt.items || []).map(item => Object.assign({}, item, {
+        matchKey: normalizeProductName(item.description)
+      }));
+      return docRef.set(Object.assign({}, receipt, {
         items: itemsWithMatchKey,
         scannedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }), { merge: true });
+      }), { merge: true }).then(() => ({ duplicate: false }));
+    });
   },
 
   loadReceipts: function() {
