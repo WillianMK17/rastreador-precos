@@ -68,6 +68,39 @@ function categorizeStore(storeName) {
   return match ? match.category : 'Outros';
 }
 
+window.ITEM_CATEGORY_RULES = [
+  {
+    category: 'Farmácia',
+    pattern: /DIPIRONA|PARACETAMOL|IBUPROFENO|AMOXICILINA|AZITROMICINA|OMEPRAZOL|LOSARTANA|ANLODIPINO|SINVASTATINA|METFORMINA|LORATADINA|DIPROSPAN|NIMESULIDA|CETOPROFENO|VITAMINA\s?[A-Z]?\d*|COMPRIMIDO|COMP\s?\d|CAPSULA|XAROPE|POMADA|GENERICO|ANTIALERGICO|ANALGESICO|ANTIBIOTICO|PROTETOR SOLAR FPS|ABSORVENTE|FRALDA GERIATRICA/
+  },
+  {
+    category: 'Pet',
+    pattern: /RACAO|PETISCO|AREIA SANITARIA|SANITARIO GATO|COLEIRA|BRINQUEDO PET|SHAMPOO PET|TAPETE HIGIENICO/
+  },
+  {
+    category: 'Vestuário',
+    pattern: /CAMISETA|CALCA JEANS|\bBERMUDA\b|\bVESTIDO\b|\bBLUSA\b|\bCAMISA\b|\bSHORT\b|\bMEIA[S]?\b|\bCUECA\b|\bSUTIA\b|\bJAQUETA\b|\bCASACO\b|\bTENIS\b|SANDALIA|\bCHINELO\b/
+  }
+];
+
+function categorizeItems(items) {
+  if (!items || items.length === 0) return null;
+  const match = window.ITEM_CATEGORY_RULES.find(rule =>
+    items.some(item => rule.pattern.test((item.description || '').toUpperCase()))
+  );
+  return match ? match.category : null;
+}
+
+const STRONG_STORE_CATEGORIES = ['Posto de Combustível', 'Farmácia', 'Bar/Restaurante'];
+
+function categorizeReceipt(storeName, items) {
+  const storeCategory = categorizeStore(storeName);
+  if (STRONG_STORE_CATEGORIES.includes(storeCategory)) {
+    return storeCategory;
+  }
+  return categorizeItems(items) || storeCategory;
+}
+
 function normalizeProductName(text) {
   const combiningDiacritics = new RegExp('[̀-ͯ]', 'g');
   return (text || '')
@@ -103,7 +136,7 @@ window.StoreModule = {
       }));
       return docRef.set(Object.assign({}, receipt, {
         items: itemsWithMatchKey,
-        category: categorizeStore(receipt.storeName),
+        category: categorizeReceipt(receipt.storeName, receipt.items),
         scannedAt: firebase.firestore.FieldValue.serverTimestamp()
       }), { merge: true }).then(() => ({ duplicate: false }));
     });
@@ -120,7 +153,7 @@ window.StoreModule = {
       const updates = [];
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        const correctCategory = categorizeStore(data.storeName);
+        const correctCategory = categorizeReceipt(data.storeName, data.items);
         if (data.category !== correctCategory) {
           updates.push(doc.ref.update({ category: correctCategory }));
         }
