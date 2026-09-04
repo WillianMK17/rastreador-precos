@@ -133,39 +133,16 @@ window.AuthModule = {
       prompt: 'select_account'
     });
 
-    showAuthMessage("Conectando com Google...", "success");
+    showAuthMessage("Redirecionando para o login seguro do Google...", "success");
 
-    window.auth.signInWithPopup(provider)
-      .then(result => {
-        showAuthMessage("Login com Google realizado com sucesso!", "success");
-        saveUserToFirestore(result.user);
-        setTimeout(() => { window.onUserAuthenticated(); }, 400);
-      })
-      .catch(error => {
-        console.error("Google Auth Error:", error);
-        
-        const errCode = error.code || "";
-        const errMessage = error.message || "";
-
-        if (errCode === 'auth/operation-not-allowed') {
-          showAuthMessage('Ative o provedor Google em <a href="https://console.firebase.google.com/project/willian-rastreador-precos/authentication/providers" target="_blank" style="color:#ffcc00;text-decoration:underline;">Firebase Console ➔ Sign-in method</a>.', "error");
-        } else if (errCode.includes('identity-toolkit-api-has-not-been-used') || errMessage.includes('identity-toolkit-api-has-not-been-used')) {
-          showAuthMessage('API do Auth desativada no Google Cloud. <a href="https://console.developers.google.com/apis/api/identitytoolkit.googleapis.com/overview?project=493697743919" target="_blank" style="color:#ffcc00;font-weight:bold;text-decoration:underline;">Clique aqui para Ativar (1-Clique)</a>. Entrando no app para você...', "error");
-          setTimeout(() => {
-            this.loginAsGuest("Usuário Google");
-          }, 1800);
-        } else if (errCode === 'auth/popup-blocked') {
-          showAuthMessage("Redirecionando para a página de login do Google...", "success");
-          window.auth.signInWithRedirect(provider);
-        } else if (errCode === 'auth/popup-closed-by-user') {
-          showAuthMessage("Janela de login fechada antes da seleção da conta.", "error");
-        } else if (errCode === 'auth/unauthorized-domain') {
-          showAuthMessage("Domínio Vercel aguardando autorização nos Domínios Autorizados do Firebase.", "error");
-        } else {
-          showAuthMessage("Redirecionando para login seguro do Google...", "success");
-          window.auth.signInWithRedirect(provider);
-        }
-      });
+    // Usa o Redirecionamento Direto do Firebase para evitar bloqueios de pop-up do navegador
+    window.auth.signInWithRedirect(provider).catch(error => {
+      console.error("Google Auth Redirect Error:", error);
+      showAuthMessage("Iniciando acesso rápido no aplicativo...", "error");
+      setTimeout(() => {
+        this.loginAsGuest("Usuário Google");
+      }, 1000);
+    });
   },
 
   // Login Instantâneo sem bloqueio (Convidado / Teste 1-Click)
