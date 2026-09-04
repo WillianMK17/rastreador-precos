@@ -46,10 +46,37 @@ window.ScannerModule = {
 
   stopScanner: function() {
     if (this.html5QrCode && this.isScanning) {
-      this.html5QrCode.stop().then(() => {
+      return this.html5QrCode.stop().then(() => {
         this.isScanning = false;
       }).catch(err => console.error(err));
     }
+    return Promise.resolve();
+  },
+
+  scanFromFile: function(file) {
+    if (!file) return;
+    if (typeof Html5Qrcode === 'undefined') {
+      console.warn("Html5Qrcode library not loaded.");
+      return;
+    }
+
+    const runScan = () => {
+      if (!this.html5QrCode) {
+        this.html5QrCode = new Html5Qrcode('qr-reader');
+      }
+      this.html5QrCode.scanFile(file, false)
+        .then(decodedText => {
+          console.log("QR Code lido de foto:", decodedText);
+          this.handleReceiptParsed(decodedText);
+        })
+        .catch(err => {
+          console.warn("Não foi possível ler QR Code na foto:", err);
+          showAuthMessage("Não conseguimos encontrar um QR Code nessa foto. Tente tirar mais de perto, com boa luz.", "error");
+          this.startCameraScanner('qr-reader', (data) => this.handleReceiptParsed(data));
+        });
+    };
+
+    this.stopScanner().then(runScan);
   },
 
   extractChaveFromQrUrl: function(qrCodeData) {

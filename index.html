@@ -329,7 +329,12 @@
           Escaneie o QR Code da NFC-e de mercado ou posto. Os itens entram sozinhos no seu histórico.
         </p>
 
-        <button style="background:none; border:none; color:var(--accent-gold); font-family:var(--font-mono); font-size:13px; cursor:pointer; text-decoration:underline;" onclick="go('manual')">
+        <input type="file" accept="image/*" capture="environment" id="qr-photo-input" style="display:none;" onchange="window.ScannerModule.scanFromFile(this.files[0])">
+        <button class="btn-cta" style="max-width:320px; margin:12px auto 0;" onclick="document.getElementById('qr-photo-input').click()">
+          📷 Tirar foto do QR Code
+        </button>
+
+        <button style="background:none; border:none; color:var(--accent-gold); font-family:var(--font-mono); font-size:13px; cursor:pointer; text-decoration:underline; margin-top:8px;" onclick="go('manual')">
           ou lançar manualmente →
         </button>
 
