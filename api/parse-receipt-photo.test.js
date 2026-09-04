@@ -73,6 +73,7 @@ describe('POST /api/parse-receipt-photo', () => {
   it('retorna os itens extraídos quando o Gemini reconhece o cupom', async () => {
     global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(JSON.stringify({
       found: true,
+      isUtilityBill: false,
       store: { name: 'Loja Teste', cnpj: '00.000.000/0001-00', address: 'Rua Teste, 1' },
       emittedAt: '01/09/2026 10:00:00',
       totalValue: 21,
@@ -82,8 +83,38 @@ describe('POST /api/parse-receipt-photo', () => {
     await handler(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.body.ok).toBe(true);
+    expect(res.body.isUtilityBill).toBe(false);
     expect(res.body.store.name).toBe('Loja Teste');
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].totalPrice).toBe(21);
+  });
+
+  it('sinaliza isUtilityBill:true para fatura de consumo, mesmo com concessionária desconhecida', async () => {
+    global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(JSON.stringify({
+      found: true,
+      isUtilityBill: true,
+      store: { name: 'Ourinhos Saneamento', cnpj: '', address: '' },
+      emittedAt: '05/09/2026 00:00:00',
+      totalValue: 135.71,
+      items: [{ description: 'Água e Esgoto - Setembro/2026', quantity: 1, unit: 'mês', unitPrice: 135.71, totalPrice: 135.71 }]
+    })));
+    const { req, res } = mockReqRes('POST', { imageBase64: 'abc', mimeType: 'image/jpeg' });
+    await handler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.isUtilityBill).toBe(true);
+  });
+
+  it('trata isUtilityBill ausente/inválido como false, sem quebrar', async () => {
+    global.fetch = vi.fn().mockResolvedValue(mockGeminiResponse(JSON.stringify({
+      found: true,
+      store: { name: 'Loja Teste', cnpj: '', address: '' },
+      emittedAt: '01/09/2026 10:00:00',
+      totalValue: 21,
+      items: [{ description: 'Item de exemplo', quantity: 2, unit: 'un', unitPrice: 10.5, totalPrice: 21 }]
+    })));
+    const { req, res } = mockReqRes('POST', { imageBase64: 'abc', mimeType: 'image/jpeg' });
+    await handler(req, res);
+    expect(res.body.isUtilityBill).toBe(false);
   });
 });

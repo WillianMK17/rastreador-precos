@@ -122,6 +122,9 @@ window.ScannerModule = {
       totalValue: apiResult.receipt.totalValue,
       itemsAvailable: true,
       source: 'photo',
+      // A IA já sabe se é fatura de consumo mesmo sem reconhecer o nome da
+      // concessionária — usamos isso em vez de depender só do regex de nome.
+      category: apiResult.isUtilityBill ? 'Contas Fixas' : undefined,
       items: apiResult.items
     };
 

@@ -5,6 +5,7 @@ const RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
     found: { type: 'boolean' },
+    isUtilityBill: { type: 'boolean' },
     store: {
       type: 'object',
       properties: {
@@ -30,14 +31,20 @@ const RESPONSE_SCHEMA = {
       }
     }
   },
-  required: ['found', 'items']
+  required: ['found', 'isUtilityBill', 'items']
 };
 
 const PROMPT = `Você está lendo a foto de um documento de despesa do Brasil. Pode ser um cupom fiscal
 (nota de mercado, posto de gasolina, farmácia, etc) OU uma fatura/conta de consumo
-(energia elétrica, água, telefone/internet).
+(água, esgoto, saneamento, energia elétrica, gás, telefone/internet, aluguel/condomínio).
 Extraia os dados exatamente como aparecem impressos, sem inventar nada.
 Se a foto não for de um documento de despesa legível, retorne found:false e items:[].
+
+Defina isUtilityBill:true sempre que o documento for uma fatura/conta de consumo
+(qualquer concessionária de água/esgoto/saneamento, energia, gás, telefonia/internet,
+ou um boleto de aluguel/condomínio) — mesmo que você não reconheça o nome da empresa
+por ela ser uma concessionária local ou pouco comum. Defina isUtilityBill:false para
+cupom fiscal de compra de produtos (mercado, posto, farmácia, etc).
 
 Se for um CUPOM FISCAL com lista de produtos: para cada item, extraia descrição,
 quantidade, unidade (ex: UN, KG, L), valor unitário e valor total do item.
@@ -128,6 +135,7 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
+    isUtilityBill: extracted.isUtilityBill === true,
     store: {
       name: (extracted.store && extracted.store.name) || '',
       cnpj: (extracted.store && extracted.store.cnpj) || '',
