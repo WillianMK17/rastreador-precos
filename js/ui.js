@@ -212,6 +212,19 @@ function renderMarketComparison() {
   });
 }
 
+function isReceiptInMonth(receipt, year, month) {
+  const emittedTimestamp = parseEmittedAtToTimestamp(receipt.emittedAt);
+  let date;
+  if (emittedTimestamp) {
+    date = new Date(emittedTimestamp);
+  } else if (receipt.scannedAt && typeof receipt.scannedAt.toDate === 'function') {
+    date = receipt.scannedAt.toDate();
+  } else {
+    return false;
+  }
+  return date.getFullYear() === year && date.getMonth() === month;
+}
+
 function renderHomePanel() {
   const valueEl = document.getElementById('home-total-spent-value');
   const subtitleEl = document.getElementById('home-total-spent-subtitle');
@@ -219,11 +232,14 @@ function renderHomePanel() {
   if (!valueEl || !itemsContainer) return;
 
   window.StoreModule.loadReceipts().then(receipts => {
-    const totalSpent = receipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const now = new Date();
+    const receiptsThisMonth = receipts.filter(r => isReceiptInMonth(r, now.getFullYear(), now.getMonth()));
+
+    const totalSpent = receiptsThisMonth.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     valueEl.textContent = formatBRL(totalSpent);
-    subtitleEl.textContent = receipts.length === 0
-      ? 'Nenhum cupom escaneado ainda nesta conta.'
-      : receipts.length + ' cupom(ns) escaneado(s) nesta conta.';
+    subtitleEl.textContent = receiptsThisMonth.length === 0
+      ? 'Nenhum cupom escaneado ainda este mês.'
+      : receiptsThisMonth.length + ' cupom(ns) escaneado(s) este mês.';
 
     const recentItems = receipts
       .filter(r => r.itemsAvailable)
