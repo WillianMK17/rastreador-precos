@@ -212,22 +212,38 @@ function renderMarketComparison() {
   });
 }
 
-function isReceiptInMonth(receipt, year, month) {
+const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+function getReceiptDate(receipt) {
   const emittedTimestamp = parseEmittedAtToTimestamp(receipt.emittedAt);
-  let date;
-  if (emittedTimestamp) {
-    date = new Date(emittedTimestamp);
-  } else if (receipt.scannedAt && typeof receipt.scannedAt.toDate === 'function') {
-    date = receipt.scannedAt.toDate();
-  } else {
-    return false;
-  }
-  return date.getFullYear() === year && date.getMonth() === month;
+  if (emittedTimestamp) return new Date(emittedTimestamp);
+  if (receipt.scannedAt && typeof receipt.scannedAt.toDate === 'function') return receipt.scannedAt.toDate();
+  return null;
+}
+
+function isReceiptInMonth(receipt, year, month) {
+  const date = getReceiptDate(receipt);
+  return !!date && date.getFullYear() === year && date.getMonth() === month;
+}
+
+function buildMonthlySpendingHistory(receipts) {
+  const totalsByMonthKey = {};
+  receipts.forEach(r => {
+    const date = getReceiptDate(r);
+    if (!date) return;
+    const key = date.getFullYear() + '-' + date.getMonth();
+    if (!totalsByMonthKey[key]) {
+      totalsByMonthKey[key] = { year: date.getFullYear(), month: date.getMonth(), total: 0 };
+    }
+    totalsByMonthKey[key].total += (r.totalValue || 0);
+  });
+  return Object.values(totalsByMonthKey).sort((a, b) => (b.year - a.year) || (b.month - a.month));
 }
 
 function renderHomePanel() {
   const valueEl = document.getElementById('home-total-spent-value');
   const subtitleEl = document.getElementById('home-total-spent-subtitle');
+  const monthlyHistoryContainer = document.getElementById('home-monthly-history-container');
   const itemsContainer = document.getElementById('home-recent-items-container');
   if (!valueEl || !itemsContainer) return;
 
@@ -240,6 +256,20 @@ function renderHomePanel() {
     subtitleEl.textContent = receiptsThisMonth.length === 0
       ? 'Nenhum cupom escaneado ainda este mês.'
       : receiptsThisMonth.length + ' cupom(ns) escaneado(s) este mês.';
+
+    if (monthlyHistoryContainer) {
+      const monthlyHistory = buildMonthlySpendingHistory(receipts);
+      monthlyHistoryContainer.innerHTML = monthlyHistory.length === 0
+        ? `<div class="receipt-card" style="text-align:center; padding:16px; color:var(--text-muted); font-size:13px;">Sem histórico de meses anteriores ainda.</div>`
+        : `<div class="receipt-card">
+            ${monthlyHistory.map(m => `
+              <div class="item-row">
+                <div class="item-name">${MONTH_NAMES[m.month]} de ${m.year}</div>
+                <div style="font-family:var(--font-mono); font-weight:700;">${formatBRL(m.total)}</div>
+              </div>
+            `).join('')}
+          </div>`;
+    }
 
     const recentItems = receipts
       .filter(r => r.itemsAvailable)
