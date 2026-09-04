@@ -52,6 +52,16 @@ window.resetAllData = function() {
   window.saveState();
 };
 
+function normalizeProductName(text) {
+  const combiningDiacritics = new RegExp('[̀-ͯ]', 'g');
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(combiningDiacritics, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
 window.StoreModule = {
   saveReceipt: function(receipt) {
     if (!window.auth || !window.auth.currentUser) {
@@ -61,10 +71,14 @@ window.StoreModule = {
       return Promise.reject(new Error('firestore-unavailable'));
     }
     const uid = window.auth.currentUser.uid;
+    const itemsWithMatchKey = (receipt.items || []).map(item => Object.assign({}, item, {
+      matchKey: normalizeProductName(item.description)
+    }));
     return window.db
       .collection('users').doc(uid)
       .collection('receipts').doc(receipt.chaveAcesso)
       .set(Object.assign({}, receipt, {
+        items: itemsWithMatchKey,
         scannedAt: firebase.firestore.FieldValue.serverTimestamp()
       }), { merge: true });
   },
@@ -80,6 +94,44 @@ window.StoreModule = {
       .orderBy('scannedAt', 'desc')
       .get()
       .then(snapshot => snapshot.docs.map(doc => Object.assign({ id: doc.id }, doc.data())));
+  },
+
+  loadPriceComparisons: function() {
+    return this.loadReceipts().then(receipts => {
+      const entriesByMatchKey = {};
+
+      receipts.forEach(r => {
+        if (!r.itemsAvailable) return;
+        (r.items || []).forEach(item => {
+          if (!item.matchKey) return;
+          if (!entriesByMatchKey[item.matchKey]) entriesByMatchKey[item.matchKey] = [];
+          entriesByMatchKey[item.matchKey].push({
+            description: item.description,
+            unitPrice: item.unitPrice,
+            storeName: r.storeName,
+            storeAddress: r.storeAddress,
+            emittedAt: r.emittedAt
+          });
+        });
+      });
+
+      return Object.values(entriesByMatchKey)
+        .map(entries => {
+          const latestByStore = {};
+          entries.forEach(entry => {
+            const existing = latestByStore[entry.storeName];
+            if (!existing || entry.emittedAt > existing.emittedAt) {
+              latestByStore[entry.storeName] = entry;
+            }
+          });
+          return Object.values(latestByStore);
+        })
+        .filter(stores => stores.length >= 2)
+        .map(stores => ({
+          description: stores[0].description,
+          stores: stores.sort((a, b) => a.unitPrice - b.unitPrice)
+        }));
+    });
   },
 
   addItemsToStock: function(items) {

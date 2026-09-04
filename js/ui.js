@@ -68,6 +68,9 @@ window.go = function(id) {
   } else if (id === 'home') {
     renderHomePanel();
     if (window.ScannerModule) window.ScannerModule.stopScanner();
+  } else if (id === 'compare') {
+    renderMarketComparison();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   }
@@ -77,16 +80,57 @@ function formatBRL(value) {
   return 'R$ ' + (value || 0).toFixed(2).replace('.', ',');
 }
 
-function renderReceiptItemsList(receipt) {
+function parseEmittedAtToTimestamp(str) {
+  const m = (str || '').match(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return 0;
+  const [, dd, mm, yyyy, hh, min, ss] = m;
+  return new Date(yyyy + '-' + mm + '-' + dd + 'T' + hh + ':' + min + ':' + ss).getTime();
+}
+
+function buildPriceTrendMap(receipts) {
+  const flat = [];
+  receipts.forEach(r => {
+    if (!r.itemsAvailable) return;
+    const timestamp = parseEmittedAtToTimestamp(r.emittedAt);
+    (r.items || []).forEach(item => {
+      if (!item.matchKey) return;
+      flat.push({ matchKey: item.matchKey, unitPrice: item.unitPrice, timestamp });
+    });
+  });
+  flat.sort((a, b) => a.timestamp - b.timestamp);
+
+  const lastSeenPrice = {};
+  const trendByKey = {};
+  flat.forEach(entry => {
+    const key = entry.matchKey + '|' + entry.timestamp;
+    const previous = lastSeenPrice[entry.matchKey];
+    if (previous !== undefined) {
+      trendByKey[key] = entry.unitPrice > previous ? 'up' : (entry.unitPrice < previous ? 'down' : 'same');
+    }
+    lastSeenPrice[entry.matchKey] = entry.unitPrice;
+  });
+  return trendByKey;
+}
+
+function renderReceiptItemsList(receipt, trendMap) {
   if (!receipt.itemsAvailable || !receipt.items || receipt.items.length === 0) {
     return `<div class="item-meta" style="padding:8px 0 0; opacity:.7;">Itens indisponíveis para este cupom.</div>`;
   }
-  return receipt.items.map(item => `
+  const timestamp = parseEmittedAtToTimestamp(receipt.emittedAt);
+  return receipt.items.map(item => {
+    const trend = trendMap[item.matchKey + '|' + timestamp];
+    const trendBadge = trend === 'up'
+      ? ' <span style="color:var(--price-up);">▲</span>'
+      : trend === 'down'
+        ? ' <span style="color:var(--price-down);">▼</span>'
+        : '';
+    return `
     <div class="item-row" style="padding-top:8px; padding-bottom:8px; border-top:1px dashed var(--card-border);">
-      <div class="item-meta">${item.description} <span style="opacity:.6;">(${item.quantity} ${item.unit})</span></div>
+      <div class="item-meta">${item.description} <span style="opacity:.6;">(${item.quantity} ${item.unit})</span>${trendBadge}</div>
       <div style="font-family:var(--font-mono); font-size:13px;">${formatBRL(item.totalPrice)}</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderReceiptsHistory() {
@@ -109,6 +153,8 @@ function renderReceiptsHistory() {
       return;
     }
 
+    const trendMap = buildPriceTrendMap(receipts);
+
     container.innerHTML = receipts.map(r => `
       <div class="receipt-card" style="margin-bottom:12px;">
         <div class="item-row">
@@ -120,7 +166,47 @@ function renderReceiptsHistory() {
             <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(r.totalValue)}</div>
           </div>
         </div>
-        ${renderReceiptItemsList(r)}
+        ${renderReceiptItemsList(r, trendMap)}
+      </div>
+    `).join('');
+  });
+}
+
+function renderMarketComparison() {
+  const container = document.getElementById('market-comparison-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+      Carregando comparações...
+    </div>
+  `;
+
+  window.StoreModule.loadPriceComparisons().then(comparisons => {
+    if (!comparisons || comparisons.length === 0) {
+      container.innerHTML = `
+        <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+          Escaneie cupons de mercados diferentes para começar a comparar preços.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = comparisons.map(c => `
+      <div class="receipt-card" style="margin-bottom:12px;">
+        <div class="item-name" style="margin-bottom:8px;">${c.description}</div>
+        ${c.stores.map((s, i) => `
+          <div class="item-row">
+            <div>
+              ${i === 0 ? '<span class="badge-best">MAIS BARATO</span>' : ''}
+              <div class="item-name">${s.storeName || 'Loja não identificada'}</div>
+              <div class="item-meta">${s.storeAddress || 'endereço não disponível'} · distância não disponível</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(s.unitPrice)}</div>
+            </div>
+          </div>
+        `).join('')}
       </div>
     `).join('');
   });
