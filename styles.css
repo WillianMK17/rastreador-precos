@@ -952,6 +952,59 @@ h1.big-title {
   border-bottom: 1px solid var(--card-border);
 }
 
+/* Native date input: some Android WebViews render the dd/mm/aaaa
+   segments in a color that blends with a custom-themed background
+   unless color-scheme tells the UA which palette to use. */
+input[type="date"] {
+  color-scheme: dark;
+  min-width: 0;
+}
+
+[data-theme="light"] input[type="date"] {
+  color-scheme: light;
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 4px 6px;
+  flex-shrink: 0;
+}
+
+.btn-remove:hover {
+  color: var(--price-up);
+}
+
+.cat-chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 auto 14px;
+}
+
+.cat-chip {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 7px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+.cat-chip.active {
+  background: var(--accent-gold);
+  color: var(--cta-text);
+  border-color: var(--accent-gold);
+  font-weight: 700;
+}
+
 .list-row input[type="checkbox"] {
   width: 18px;
   height: 18px;

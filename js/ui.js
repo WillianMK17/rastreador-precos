@@ -162,14 +162,17 @@ function renderReceiptsHistory() {
     const trendMap = buildPriceTrendMap(receipts);
 
     container.innerHTML = receipts.map(r => `
-      <div class="receipt-card" style="margin-bottom:12px;">
+      <div class="receipt-card" style="margin-bottom:12px;" data-id="${r.id}">
         <div class="item-row">
           <div>
-            <div class="item-name">${r.storeName || 'Loja não identificada'}</div>
+            <div class="item-name">${r.billType ? (BILL_TYPE_LABELS[r.billType] || r.billType) + ' · ' : ''}${r.storeName || 'Loja não identificada'}</div>
             <div class="item-meta">${r.emittedAt || ''}${r.dueDate ? ' · vence ' + r.dueDate.split('-').reverse().join('/') : ''}</div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(r.totalValue)}</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="text-align:right;">
+              <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(r.totalValue)}</div>
+            </div>
+            <button class="btn-remove" title="Excluir lançamento" onclick="removeReceipt('${r.id}')">🗑️</button>
           </div>
         </div>
         ${renderReceiptItemsList(r, trendMap)}
@@ -177,6 +180,17 @@ function renderReceiptsHistory() {
     `).join('');
   });
 }
+
+window.removeReceipt = function(id) {
+  if (!confirm('Excluir este lançamento? Essa ação não pode ser desfeita.')) return;
+
+  window.StoreModule.deleteReceipt(id).then(() => {
+    renderReceiptsHistory();
+  }).catch(err => {
+    console.error('Erro ao excluir lançamento:', err);
+    alert('Não foi possível excluir. Tente novamente.');
+  });
+};
 
 function renderMarketComparison() {
   const container = document.getElementById('market-comparison-container');
@@ -703,16 +717,49 @@ function renderStock() {
           <div class="progress-bar-fill ${item.low ? 'low' : ''}" style="width: ${item.qty > 0 ? Math.min(100, (item.qty * 25)) + '%' : '5%'}"></div>
         </div>
       </div>
-      <div class="stock-ctrls">
-        <button class="btn-qty" onclick="stockAdjust(this, -1)">−</button>
-        <span class="qty-val">${item.qty}</span>
-        <button class="btn-qty" onclick="stockAdjust(this, 1)">+</button>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+        <div class="stock-ctrls">
+          <button class="btn-qty" onclick="stockAdjust(this, -1)">−</button>
+          <span class="qty-val">${item.qty}</span>
+          <button class="btn-qty" onclick="stockAdjust(this, 1)">+</button>
+        </div>
+        <button class="btn-remove" title="Excluir item" onclick="removeStockItem('${item.id}')">🗑️</button>
       </div>
     </div>
   `).join('');
 }
 
-// Manual Bill Entry (água, luz, telefone)
+window.addStockItemManual = function() {
+  const input = document.getElementById('stock-input-field');
+  if (!input || !input.value.trim()) return;
+  window.addStockItem(input.value.trim(), 1, 'cadastrado manualmente');
+  input.value = '';
+};
+
+window.removeStockItem = function(id) {
+  window.AppState.stock = window.AppState.stock.filter(s => s.id !== id);
+  renderStock();
+  window.saveState();
+};
+
+// Manual Bill Entry (água, luz, celular, internet, aluguel)
+const BILL_TYPE_LABELS = {
+  agua: 'Água',
+  luz: 'Luz',
+  celular: 'Celular',
+  internet: 'Internet',
+  aluguel: 'Aluguel',
+  outra_conta: 'Outra conta'
+};
+
+let selectedBillType = 'agua';
+
+window.selectBillType = function(el, type) {
+  selectedBillType = type;
+  el.parentElement.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+};
+
 window.saveManualBill = function() {
   const providerInput = document.getElementById('bill-provider');
   const priceInput = document.getElementById('bill-price');
@@ -738,6 +785,8 @@ window.saveManualBill = function() {
     emittedAt = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':00';
   }
 
+  const billTypeLabel = BILL_TYPE_LABELS[selectedBillType] || 'Outra conta';
+
   const receipt = {
     chaveAcesso: 'manual-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
     storeName: provider,
@@ -745,11 +794,15 @@ window.saveManualBill = function() {
     storeAddress: '',
     emittedAt: emittedAt,
     dueDate: dueDateValue || null,
+    billType: selectedBillType,
+    // Categoria fixa, independente do nome da concessionária reconhecer ou não
+    // um padrão conhecido — resolve o caso de contas caindo em "Outros".
+    category: 'Contas Fixas',
     totalValue: price,
     itemsAvailable: true,
     source: 'manual',
     items: [{
-      description: provider + ' - conta',
+      description: billTypeLabel + ' · ' + provider,
       code: '',
       quantity: 1,
       unit: 'mês',

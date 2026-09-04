@@ -387,7 +387,15 @@
         go('stock');
       ">Salvar no Histórico & Estoque</button>
 
-      <div class="eyebrow" style="margin-top:24px;">Ou lance uma conta (água, luz, telefone)</div>
+      <div class="eyebrow" style="margin-top:24px;">Ou lance uma conta fixa</div>
+      <div class="cat-chip-row" style="max-width:500px;">
+        <button type="button" class="cat-chip active" onclick="selectBillType(this,'agua')">Água</button>
+        <button type="button" class="cat-chip" onclick="selectBillType(this,'luz')">Luz</button>
+        <button type="button" class="cat-chip" onclick="selectBillType(this,'celular')">Celular</button>
+        <button type="button" class="cat-chip" onclick="selectBillType(this,'internet')">Internet</button>
+        <button type="button" class="cat-chip" onclick="selectBillType(this,'aluguel')">Aluguel</button>
+        <button type="button" class="cat-chip" onclick="selectBillType(this,'outra_conta')">Outra conta</button>
+      </div>
       <div class="receipt-card" style="max-width:500px; margin:0 auto 16px;">
         <div class="item-row">
           <input type="text" id="bill-provider" placeholder="Concessionária (ex: CPFL, Sabesp, Vivo)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
@@ -396,7 +404,8 @@
           <input type="number" id="bill-price" step="0.01" placeholder="Valor da conta (R$ 0,00)" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
         </div>
         <div class="item-row">
-          <input type="date" id="bill-due-date" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
+          <span class="item-meta" style="flex-shrink:0; margin-right:10px;">Vencimento</span>
+          <input type="date" id="bill-due-date" style="flex:1; min-width:0; background:transparent; border:none; color:var(--text-main); font-family:var(--font-mono); font-size:14px; outline:none;">
         </div>
       </div>
       <div class="subtitle" style="max-width:500px; margin:-8px auto 16px; font-size:12px;">⌁ informe o vencimento pra conta entrar no mês certo do Painel e do Histórico, mesmo se você lançar antes ou depois da data</div>
@@ -493,7 +502,12 @@
     <div class="screen" id="stock">
       <div class="eyebrow">Meu Estoque Doméstico</div>
       <h1 class="big-title">O que você já tem em casa</h1>
-      <p class="subtitle">Cupons escaneados somam no estoque automaticamente.</p>
+      <p class="subtitle">Cadastre manualmente o que você tem guardado e remova quando acabar.</p>
+
+      <div class="list-input-group">
+        <input type="text" id="stock-input-field" class="list-input" placeholder="Ex: Papel higiênico">
+        <button class="btn-add" onclick="addStockItemManual()">+</button>
+      </div>
 
       <div id="stock-container">
         <!-- Rendered dynamically via js/ui.js -->

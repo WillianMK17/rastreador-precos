@@ -57,7 +57,7 @@ window.CATEGORY_RULES = [
   { category: 'Farmácia', pattern: /FARMA|DROGARIA|DROGASIL|PACHECO|RAIA|PAGUE MENOS|EXTRAFARMA|VENANCIO/ },
   { category: 'Bar/Restaurante', pattern: /\bBAR\b|RESTAURANTE|LANCHONETE|PIZZARIA|CHURRASCARIA|PADARIA|\bCAFE\b/ },
   {
-    category: 'Contas (Água/Luz/Telefone)',
+    category: 'Contas Fixas',
     pattern: /\bCPFL\b|\bENEL\b|ELEKTRO|\bLIGHT\b|\bCOPEL\b|\bCEMIG\b|EQUATORIAL|CELESC|\bRGE\b|COELBA|CELPE|COSERN|\bCEEE\b|\bAMPLA\b|SABESP|COPASA|CAGECE|CORSAN|EMBASA|CEDAE|COMPESA|\bCAESB\b|SANEPAR|\bVIVO\b|\bCLARO\b|\bTIM\b|\bOI\b\s|\bNET\b|\bSKY\b|\bALGAR\b|NEXTEL/
   },
   {
@@ -95,7 +95,7 @@ function categorizeItems(items) {
   return match ? match.category : null;
 }
 
-const STRONG_STORE_CATEGORIES = ['Posto de Combustível', 'Farmácia', 'Bar/Restaurante', 'Contas (Água/Luz/Telefone)'];
+const STRONG_STORE_CATEGORIES = ['Posto de Combustível', 'Farmácia', 'Bar/Restaurante', 'Contas Fixas'];
 
 function categorizeReceipt(storeName, items) {
   const storeCategory = categorizeStore(storeName);
@@ -140,10 +140,23 @@ window.StoreModule = {
       }));
       return docRef.set(Object.assign({}, receipt, {
         items: itemsWithMatchKey,
-        category: categorizeReceipt(receipt.storeName, receipt.items),
+        // Categoria explícita (ex: lançamento manual de conta) tem prioridade
+        // sobre a detecção automática pelo nome da loja/concessionária.
+        category: receipt.category || categorizeReceipt(receipt.storeName, receipt.items),
         scannedAt: firebase.firestore.FieldValue.serverTimestamp()
       }), { merge: true }).then(() => ({ duplicate: false }));
     });
+  },
+
+  deleteReceipt: function(chaveAcesso) {
+    if (!window.auth || !window.auth.currentUser) {
+      return Promise.reject(new Error('not-authenticated'));
+    }
+    if (!window.db) {
+      return Promise.reject(new Error('firestore-unavailable'));
+    }
+    const uid = window.auth.currentUser.uid;
+    return window.db.collection('users').doc(uid).collection('receipts').doc(chaveAcesso).delete();
   },
 
   recategorizeAllReceipts: function() {
