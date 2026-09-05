@@ -7,6 +7,8 @@
 window.AppState = {
   theme: localStorage.getItem('theme_preference') || 'dark',
   lgpdAccepted: localStorage.getItem('lgpd_accepted') === 'true',
+  profileCity: '',
+  profileCitySlug: '',
   monthlySpent: 0.00,
   personalIndex: "0.0%",
   itemsRising: [],
@@ -38,6 +40,19 @@ window.loadState = function() {
       // Estoque agora é só o que o usuário cadastra manualmente.
       if (parsed.stock) window.AppState.stock = parsed.stock.filter(item => item.source === 'manual');
       if (parsed.monthlySpent !== undefined) window.AppState.monthlySpent = parsed.monthlySpent;
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  // Fallback local (funciona também no modo convidado, sem Firestore) —
+  // sobrescrito pelo perfil do Firestore assim que o login resolver, se houver.
+  const savedCity = localStorage.getItem('profile_city');
+  if (savedCity) {
+    try {
+      const parsedCity = JSON.parse(savedCity);
+      window.AppState.profileCity = parsedCity.city || '';
+      window.AppState.profileCitySlug = parsedCity.citySlug || '';
     } catch(e) {
       console.error(e);
     }
@@ -117,6 +132,13 @@ function normalizeProductName(text) {
     .trim();
 }
 
+// Mesma normalização do produto, pra "São Paulo", "sao paulo" e "SP - Capital"
+// não virarem grupos diferentes por acidente na comparação por cidade.
+function normalizeCityName(text) {
+  return normalizeProductName(text);
+}
+window.normalizeCityName = normalizeCityName;
+
 window.StoreModule = {
   saveReceipt: function(receipt) {
     if (!window.auth || !window.auth.currentUser) {
@@ -145,6 +167,11 @@ window.StoreModule = {
         // Categoria explícita (ex: lançamento manual de conta) tem prioridade
         // sobre a detecção automática pelo nome da loja/concessionária.
         category: receipt.category || categorizeReceipt(receipt.storeName, receipt.items),
+        // Cidade do perfil no momento do lançamento (não atualiza retroativamente
+        // se o usuário mudar de cidade depois) — usada pra separar comparações
+        // por região e não misturar preços de cidades diferentes.
+        city: window.AppState.profileCity || '',
+        citySlug: window.AppState.profileCitySlug || '',
         scannedAt: firebase.firestore.FieldValue.serverTimestamp()
       }), { merge: true }).then(() => ({ duplicate: false }));
     });
@@ -194,7 +221,11 @@ window.StoreModule = {
       .then(snapshot => snapshot.docs.map(doc => Object.assign({ id: doc.id }, doc.data())));
   },
 
-  loadPriceComparisons: function() {
+  // A lista de produtos vem de TODO o seu histórico, não só da cidade
+  // filtrada — senão "outra cidade" nunca mostraria nada (você provavelmente
+  // nunca comprou lá). citySlug só restringe QUAIS LOJAS aparecem em cada
+  // produto; pode dar 0 lojas (e mesmo assim o resumo da comunidade aparece).
+  loadPriceComparisons: function(citySlug) {
     return this.loadReceipts().then(receipts => {
       const entriesByMatchKey = {};
 
@@ -209,41 +240,66 @@ window.StoreModule = {
             unitPrice: item.unitPrice,
             storeName: r.storeName,
             storeAddress: r.storeAddress,
-            emittedAt: r.emittedAt
+            emittedAt: r.emittedAt,
+            citySlug: r.citySlug
           });
         });
       });
 
       return Object.values(entriesByMatchKey)
         .map(entries => {
+          const scoped = citySlug ? entries.filter(e => e.citySlug === citySlug) : entries;
           const latestByStore = {};
-          entries.forEach(entry => {
+          scoped.forEach(entry => {
             const existing = latestByStore[entry.storeName];
             if (!existing || entry.emittedAt > existing.emittedAt) {
               latestByStore[entry.storeName] = entry;
             }
           });
-          return Object.values(latestByStore);
-        })
-        .filter(stores => stores.length >= 2)
-        .map(stores => ({
-          matchKey: stores[0].matchKey,
-          description: stores[0].description,
-          stores: stores.sort((a, b) => a.unitPrice - b.unitPrice)
-        }));
+          return {
+            matchKey: entries[0].matchKey,
+            description: entries[0].description,
+            stores: Object.values(latestByStore).sort((a, b) => a.unitPrice - b.unitPrice)
+          };
+        });
     });
   },
 
   // Resumo anônimo (preço médio, menor preço, nº de amostras) calculado no
   // backend a partir dos cupons de TODOS os usuários — não só os seus.
-  loadPriceIndexEntry: function(matchKey) {
+  // citySlug: omitido/'' = resumo geral (todas as cidades); passe uma citySlug
+  // (a sua, ou outra específica) pra ver o resumo só daquela região.
+  loadPriceIndexEntry: function(matchKey, citySlug) {
     if (!window.db || !matchKey) return Promise.resolve(null);
-    return window.db.collection('priceIndex').doc(matchKey).get()
+    const docId = citySlug ? citySlug + '__' + matchKey : matchKey;
+    return window.db.collection('priceIndex').doc(docId).get()
       .then(doc => doc.exists ? doc.data() : null)
       .catch(() => null);
   },
 
   triggerCommunityPriceUpdate: function() {
     return fetch('/api/aggregate-prices', { method: 'POST' }).then(res => res.json());
+  },
+
+  loadUserProfile: function() {
+    if (!window.auth || !window.auth.currentUser || !window.db) return Promise.resolve(null);
+    const uid = window.auth.currentUser.uid;
+    return window.db.collection('users').doc(uid).get()
+      .then(doc => doc.exists ? doc.data() : null)
+      .catch(() => null);
+  },
+
+  saveProfileCity: function(city) {
+    const citySlug = normalizeCityName(city);
+    window.AppState.profileCity = city;
+    window.AppState.profileCitySlug = citySlug;
+    localStorage.setItem('profile_city', JSON.stringify({ city, citySlug }));
+
+    if (!window.auth || !window.auth.currentUser || !window.db) {
+      return Promise.resolve({ saved: false });
+    }
+    const uid = window.auth.currentUser.uid;
+    return window.db.collection('users').doc(uid).set({ city, citySlug }, { merge: true })
+      .then(() => ({ saved: true }));
   }
 };

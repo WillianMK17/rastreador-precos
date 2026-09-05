@@ -195,6 +195,38 @@ window.removeReceipt = function(id) {
   });
 };
 
+// 'minha' = só cupons da cidade do perfil · 'geral' = todas as cidades ·
+// 'outra' = uma cidade específica digitada pelo usuário
+let compareCityScope = 'minha';
+let compareOtherCitySlug = '';
+
+// Mesmo filtro vale pros SEUS cupons e pro resumo da comunidade — senão o
+// gráfico "meus mercados" mistura cidades diferentes mesmo enquanto o
+// usuário está explicitamente olhando o resumo de uma cidade específica.
+function resolveCompareCitySlug() {
+  if (compareCityScope === 'minha') return window.AppState.profileCitySlug || '';
+  if (compareCityScope === 'outra') return compareOtherCitySlug;
+  return '';
+}
+
+window.selectCompareCityScope = function(el, scope) {
+  compareCityScope = scope;
+  el.parentElement.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  const otherRow = document.getElementById('compare-city-other-row');
+  if (otherRow) otherRow.style.display = scope === 'outra' ? 'flex' : 'none';
+
+  if (scope !== 'outra' || compareOtherCitySlug) renderMarketComparison();
+};
+
+window.applyOtherCityFilter = function() {
+  const input = document.getElementById('compare-city-other-input');
+  if (!input || !input.value.trim()) return;
+  compareOtherCitySlug = normalizeCityName(input.value.trim());
+  renderMarketComparison();
+};
+
 function renderMarketComparison() {
   const container = document.getElementById('market-comparison-container');
   if (!container) return;
@@ -205,7 +237,9 @@ function renderMarketComparison() {
     </div>
   `;
 
-  window.StoreModule.loadPriceComparisons().then(comparisons => {
+  const citySlug = resolveCompareCitySlug();
+
+  window.StoreModule.loadPriceComparisons(citySlug).then(comparisons => {
     if (!comparisons || comparisons.length === 0) {
       container.innerHTML = `
         <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
@@ -216,40 +250,70 @@ function renderMarketComparison() {
     }
 
     container.innerHTML = comparisons.map((c, i) => {
-      const maxPrice = Math.max(...c.stores.map(s => s.unitPrice)) || 1;
-      const ariaLabel = 'Comparação de preço de ' + c.description + ' entre ' +
-        c.stores.map(s => s.storeName + ': ' + formatBRL(s.unitPrice)).join(', ');
+      let ownSection;
+
+      if (c.stores.length === 0) {
+        ownSection = `<div class="item-meta">Você ainda não comprou isso nessa região.</div>`;
+      } else if (c.stores.length === 1) {
+        const s = c.stores[0];
+        ownSection = `
+          <div class="item-row" style="padding:0;">
+            <div class="item-meta">${s.storeName || 'Loja não identificada'}</div>
+            <div style="font-family:var(--font-mono); font-weight:700; font-size:14px;">${formatBRL(s.unitPrice)}</div>
+          </div>
+        `;
+      } else {
+        const maxPrice = Math.max(...c.stores.map(s => s.unitPrice)) || 1;
+        const ariaLabel = 'Comparação de preço de ' + c.description + ' entre ' +
+          c.stores.map(s => s.storeName + ': ' + formatBRL(s.unitPrice)).join(', ');
+
+        ownSection = `
+          <div role="img" aria-label="${ariaLabel}">
+            ${c.stores.map((s, j) => {
+              const pct = Math.max(6, Math.round((s.unitPrice / maxPrice) * 100));
+              return `
+              <div class="compare-bar-row">
+                <div class="compare-bar-label">${j === 0 ? '<span class="badge-best">MAIS BARATO</span> ' : ''}${s.storeName || 'Loja não identificada'}</div>
+                <div class="compare-bar-track">
+                  <div class="compare-bar-fill${j === 0 ? ' best' : ''}" style="width:${pct}%"></div>
+                </div>
+                <div class="compare-bar-value">${formatBRL(s.unitPrice)}</div>
+              </div>
+            `;
+            }).join('')}
+          </div>
+        `;
+      }
 
       return `
       <div class="receipt-card" style="margin-bottom:12px;">
         <div class="item-name" style="margin-bottom:10px;">${c.description}</div>
-        <div role="img" aria-label="${ariaLabel}">
-          ${c.stores.map((s, i) => {
-            const pct = Math.max(6, Math.round((s.unitPrice / maxPrice) * 100));
-            return `
-            <div class="compare-bar-row">
-              <div class="compare-bar-label">${i === 0 ? '<span class="badge-best">MAIS BARATO</span> ' : ''}${s.storeName || 'Loja não identificada'}</div>
-              <div class="compare-bar-track">
-                <div class="compare-bar-fill${i === 0 ? ' best' : ''}" style="width:${pct}%"></div>
-              </div>
-              <div class="compare-bar-value">${formatBRL(s.unitPrice)}</div>
-            </div>
-          `;
-          }).join('')}
-        </div>
+        ${ownSection}
         <div id="community-price-${i}"></div>
       </div>
     `;
     }).join('');
 
+    const communityCitySlug = citySlug;
+    const communityScopeLabel = compareCityScope === 'geral'
+      ? 'todas as cidades'
+      : (compareCityScope === 'outra' ? 'cidade selecionada' : 'sua cidade');
+
     comparisons.forEach((c, i) => {
-      window.StoreModule.loadPriceIndexEntry(c.matchKey).then(entry => {
-        if (!entry) return;
+      window.StoreModule.loadPriceIndexEntry(c.matchKey, communityCitySlug).then(entry => {
         const el = document.getElementById('community-price-' + i);
         if (!el) return;
+        if (!entry) {
+          el.innerHTML = `
+            <div class="item-meta" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--card-border); opacity:.7;">
+              🌐 Ainda sem dado da comunidade pra ${communityScopeLabel} nesse produto.
+            </div>
+          `;
+          return;
+        }
         el.innerHTML = `
           <div class="item-meta" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--card-border);">
-            🌐 Comunidade: média ${formatBRL(entry.avgUnitPrice)} · menor ${formatBRL(entry.minUnitPrice)}${entry.minUnitPriceStore ? ' (' + entry.minUnitPriceStore + ')' : ''} · ${entry.distinctUsers} usuários
+            🌐 Comunidade (${communityScopeLabel}): média ${formatBRL(entry.avgUnitPrice)} · menor ${formatBRL(entry.minUnitPrice)}${entry.minUnitPriceStore ? ' (' + entry.minUnitPriceStore + ')' : ''} · ${entry.distinctUsers} usuários
           </div>
         `;
       });
@@ -836,6 +900,19 @@ window.acceptLGPD = function() {
   localStorage.setItem('lgpd_accepted', 'true');
   const banner = document.getElementById('lgpd-banner');
   if (banner) banner.style.display = 'none';
+};
+
+window.saveProfileCity = function() {
+  const input = document.getElementById('profile-city-input');
+  if (!input) return;
+  const city = input.value.trim();
+  if (!city) {
+    alert('Digite o nome da sua cidade.');
+    return;
+  }
+  window.StoreModule.saveProfileCity(city).then(() => {
+    alert('Cidade salva! Novos cupons e comparações vão usar "' + city + '".');
+  });
 };
 
 // Stock Adjustments

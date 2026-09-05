@@ -216,6 +216,18 @@
         </form>
       </div>
 
+      <!-- Cidade do usuário — usada pra filtrar comparações de preço por região -->
+      <div id="profile-city-wrap" style="display:none; max-width:500px; margin:16px auto 0;">
+        <div class="eyebrow">Minha cidade</div>
+        <div class="receipt-card">
+          <div class="item-row">
+            <input type="text" id="profile-city-input" placeholder="Ex: Ourinhos, SP" style="width:100%; background:transparent; border:none; color:var(--text-main); font-family:var(--font-main); font-size:14px; outline:none;">
+          </div>
+        </div>
+        <button class="btn-cta" style="background:transparent; border:1px solid var(--card-border); color:var(--text-main); margin-top:8px;" onclick="window.saveProfileCity()">Salvar cidade</button>
+        <div class="subtitle" style="font-size:12px; margin-top:6px;">Usada pra filtrar comparações de preço só da sua região.</div>
+      </div>
+
       <!-- Botão de Sair / Logout se logado -->
       <div id="logout-btn-wrap" style="display:none; text-align:center; margin-top:10px;">
         <button class="btn-cta" style="background:rgba(217,83,79,0.15); color:var(--price-up); border:1px solid rgba(217,83,79,0.3); max-width:300px; margin:0 auto;" onclick="AuthModule.logout()">
@@ -430,7 +442,7 @@
       </div>
 
       <button class="btn-cta" style="background:transparent; border:1px solid var(--card-border); color:var(--text-main); max-width:400px; margin:0 auto;" onclick="go('compare')">
-        🔍 Ver preços de mercados em Ourinhos
+        🔍 Ver preços de outros mercados
       </button>
 
       <div class="app-legal-footer">
@@ -442,9 +454,19 @@
     <!-- ===== SCREEN 6: COMPARE ===== -->
     <div class="screen" id="compare">
       <button style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; cursor:pointer; margin-bottom:12px;" onclick="go('history')">← voltar ao histórico</button>
-      <div class="eyebrow">Comparar · Ourinhos, SP</div>
-      <h1 class="big-title">Preços em Ourinhos</h1>
-      <p class="subtitle">Preços confirmados por notas fiscais escaneadas na cidade</p>
+      <div class="eyebrow">Comparar preços</div>
+      <h1 class="big-title">Onde é mais barato</h1>
+      <p class="subtitle">Seus cupons, mais o preço médio da comunidade — filtre por região abaixo.</p>
+
+      <div class="cat-chip-row" style="margin-bottom:8px;">
+        <button type="button" class="cat-chip active" onclick="selectCompareCityScope(this,'minha')">Minha cidade</button>
+        <button type="button" class="cat-chip" onclick="selectCompareCityScope(this,'geral')">Todas as cidades</button>
+        <button type="button" class="cat-chip" onclick="selectCompareCityScope(this,'outra')">Outra cidade</button>
+      </div>
+      <div class="list-input-group" id="compare-city-other-row" style="display:none;">
+        <input type="text" id="compare-city-other-input" class="list-input" placeholder="Ex: São Paulo, SP">
+        <button class="btn-add" onclick="applyOtherCityFilter()">→</button>
+      </div>
 
       <div id="market-comparison-container">
         <!-- Rendered dynamically via js/ui.js -->
@@ -462,7 +484,7 @@
 
     <!-- ===== SCREEN 7: SHOPPING LIST ===== -->
     <div class="screen" id="list">
-      <div class="eyebrow">Lista de Compras · Ourinhos</div>
+      <div class="eyebrow">Lista de Compras</div>
       <h1 class="big-title">O que você precisa comprar?</h1>
       <p class="subtitle">Cruzamos sua lista com o menor preço nos mercados da cidade.</p>
 

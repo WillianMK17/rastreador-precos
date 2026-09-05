@@ -53,6 +53,8 @@ function updateUserUI(user) {
 
   const guestData = JSON.parse(localStorage.getItem('guest_user_session') || 'null');
   const activeUser = user || guestData;
+  const profileCityWrap = document.getElementById('profile-city-wrap');
+  const profileCityInput = document.getElementById('profile-city-input');
 
   const tabLanding = document.getElementById('tab-landing');
   const tabHome = document.getElementById('tab-home');
@@ -78,6 +80,17 @@ function updateUserUI(user) {
     `;
     if (logoutBtn) logoutBtn.style.display = 'block';
 
+    if (profileCityWrap) profileCityWrap.style.display = 'block';
+    if (profileCityInput) profileCityInput.value = window.AppState.profileCity || '';
+    if (window.StoreModule && window.StoreModule.loadUserProfile) {
+      window.StoreModule.loadUserProfile().then(profile => {
+        if (!profile || !profile.city) return;
+        window.AppState.profileCity = profile.city;
+        window.AppState.profileCitySlug = profile.citySlug || '';
+        if (profileCityInput) profileCityInput.value = profile.city;
+      });
+    }
+
     // SEPARAR PÁGINA DE PROPAGANDA: Ocultar aba de propaganda quando logado
     if (tabLanding) tabLanding.style.display = 'none';
     if (tabHome) tabHome.style.display = 'flex';
@@ -100,6 +113,7 @@ function updateUserUI(user) {
       ENTRAR
     `;
     if (logoutBtn) logoutBtn.style.display = 'none';
+    if (profileCityWrap) profileCityWrap.style.display = 'none';
 
     // Quando deslogado: Mostrar aba de propaganda
     if (tabLanding) tabLanding.style.display = 'flex';

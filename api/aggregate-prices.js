@@ -1,6 +1,6 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { aggregateReceiptItems } from './lib/aggregatePrices.js';
+import { aggregateReceiptItems, aggregateReceiptItemsByCity } from './lib/aggregatePrices.js';
 
 const BATCH_LIMIT = 400; // Firestore batch write limit is 500
 
@@ -45,14 +45,19 @@ export default async function handler(req, res) {
     return Object.assign({}, doc.data(), { userId: parentUser ? parentUser.id : null });
   });
 
-  const aggregated = aggregateReceiptItems(receipts);
+  // Dois níveis: resumo geral (todas as cidades) e resumo por cidade —
+  // cada um com seu próprio mínimo de usuários distintos, pra nunca misturar
+  // preço de uma cidade com o de outra na comparação.
+  const aggregated = aggregateReceiptItems(receipts)
+    .concat(aggregateReceiptItemsByCity(receipts));
 
   try {
     for (let i = 0; i < aggregated.length; i += BATCH_LIMIT) {
       const batch = db.batch();
       aggregated.slice(i, i + BATCH_LIMIT).forEach(entry => {
-        const ref = db.collection('priceIndex').doc(entry.matchKey);
-        batch.set(ref, Object.assign({}, entry, {
+        const { docId, ...data } = entry;
+        const ref = db.collection('priceIndex').doc(docId);
+        batch.set(ref, Object.assign({}, data, {
           updatedAt: FieldValue.serverTimestamp()
         }));
       });
