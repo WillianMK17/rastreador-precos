@@ -33,7 +33,7 @@ window.setViewportMode = function(mode) {
 };
 
 // Navigation Function
-const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock','month-detail','analysis'];
+const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock','month-detail','category-detail','analysis'];
 
 window.go = function(id) {
   screens.forEach(s => {
@@ -50,7 +50,7 @@ window.go = function(id) {
     if (tabEl) tabEl.classList.remove('active');
   });
 
-  const tabMap = { manual: 'scan', consent: 'scan', compare: 'history', 'list-result': 'list', 'month-detail': 'home' };
+  const tabMap = { manual: 'scan', consent: 'scan', compare: 'history', 'list-result': 'list', 'month-detail': 'home', 'category-detail': 'home' };
   const tabId = tabMap[id] || id;
   const activeTab = document.getElementById('tab-' + tabId);
   if (activeTab) activeTab.classList.add('active');
@@ -74,6 +74,9 @@ window.go = function(id) {
   } else if (id === 'month-detail') {
     renderMonthDetail();
     if (window.ScannerModule) window.ScannerModule.stopScanner();
+  } else if (id === 'category-detail') {
+    renderCategoryDetail();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else if (id === 'analysis') {
     renderProductAnalysis();
     if (window.ScannerModule) window.ScannerModule.stopScanner();
@@ -87,6 +90,16 @@ window.go = function(id) {
 
 function formatBRL(value) {
   return 'R$ ' + (value || 0).toFixed(2).replace('.', ',');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function escapeAttr(text) {
+  return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function parseEmittedAtToTimestamp(str) {
@@ -614,6 +627,11 @@ window.openMonthDetail = function(year, month) {
   if (window.go) window.go('month-detail');
 };
 
+window.openCurrentMonthDetail = function() {
+  const now = new Date();
+  window.openMonthDetail(now.getFullYear(), now.getMonth());
+};
+
 function renderMonthDetail() {
   const container = document.getElementById('month-detail-container');
   const titleEl = document.getElementById('month-detail-title');
@@ -654,8 +672,8 @@ function renderMonthDetail() {
         ${categories.map(([category, value], i) => {
           const pct = Math.max(6, Math.round((value / maxValue) * 100));
           return `
-          <div class="compare-bar-row">
-            <div class="compare-bar-label">${category}</div>
+          <div class="compare-bar-row" style="cursor:pointer;" data-category="${escapeAttr(category)}" onclick="window.openCategoryDetail(${year},${month},this.dataset.category)">
+            <div class="compare-bar-label">${escapeHtml(category)} ›</div>
             <div class="compare-bar-track">
               <div class="compare-bar-fill${i === 0 ? ' best' : ''}" style="width:${pct}%"></div>
             </div>
@@ -667,6 +685,79 @@ function renderMonthDetail() {
     `;
   });
 }
+
+window.openCategoryDetail = function(year, month, category) {
+  window.SelectedCategory = { year, month, category };
+  if (window.go) window.go('category-detail');
+};
+
+function renderCategoryDetail() {
+  const container = document.getElementById('category-detail-container');
+  const titleEl = document.getElementById('category-detail-title');
+  if (!container || !window.SelectedCategory) return;
+
+  const { year, month, category } = window.SelectedCategory;
+  if (titleEl) titleEl.textContent = category;
+
+  container.innerHTML = `
+    <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+      Carregando...
+    </div>
+  `;
+
+  window.StoreModule.loadReceipts().then(receipts => {
+    const allCategories = Array.from(new Set(receipts.map(r => r.category || 'Outros'))).sort();
+    const inCategory = receipts.filter(r => isReceiptInMonth(r, year, month) && (r.category || 'Outros') === category);
+
+    if (inCategory.length === 0) {
+      container.innerHTML = `
+        <div class="receipt-card" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
+          Nenhum cupom nessa categoria.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = inCategory.map(r => `
+      <div class="receipt-card" style="margin-bottom:12px;">
+        <div class="item-row">
+          <div>
+            <div class="item-name">${escapeHtml(r.storeName || 'Loja não identificada')}</div>
+            <div class="item-meta">${r.emittedAt || ''}</div>
+          </div>
+          <div style="font-family:var(--font-mono); font-weight:700; font-size:16px;">${formatBRL(r.totalValue)}</div>
+        </div>
+        <div class="item-meta" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--card-border);">Mover pra outra categoria:</div>
+        <div class="cat-chip-row" style="margin-top:6px;">
+          ${allCategories.filter(cat => cat !== category).map(cat => `
+            <button type="button" class="cat-chip" data-category="${escapeAttr(cat)}" onclick="window.editReceiptCategory('${r.id}', this.dataset.category)">${escapeHtml(cat)}</button>
+          `).join('')}
+          <button type="button" class="cat-chip" onclick="window.editReceiptCategory('${r.id}', null)">+ Nova categoria</button>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+window.editReceiptCategory = function(chaveAcesso, category) {
+  let newCategory = category;
+  if (newCategory === null) {
+    newCategory = prompt('Nome da nova categoria:');
+    if (!newCategory || !newCategory.trim()) return;
+    newCategory = newCategory.trim();
+  }
+
+  window.StoreModule.updateReceiptCategory(chaveAcesso, newCategory).then(() => {
+    renderCategoryDetail();
+  }).catch(err => {
+    if (err.message === 'not-authenticated') {
+      alert('Entre com sua conta Google pra editar categorias.');
+    } else {
+      console.error('Erro ao atualizar categoria:', err);
+      alert('Não foi possível atualizar a categoria.');
+    }
+  });
+};
 
 function buildProductPriceHistory(receipts) {
   const byKey = {};
@@ -698,15 +789,21 @@ function buildPriceLineChartSvg(entries) {
   const prices = entries.map(e => e.price);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  const range = maxPrice - minPrice || 1;
+  const firstPrice = prices[0];
 
   const chartWidth = width - padX * 2;
   const chartHeight = height - padTop - padBottom;
   const stepX = entries.length > 1 ? chartWidth / (entries.length - 1) : 0;
+  const centerY = padTop + chartHeight / 2;
+
+  // Ancora o primeiro ponto de TODOS os gráficos na mesma altura (o centro),
+  // escalando pelo maior desvio absoluto em relação ao primeiro preço — assim
+  // dá pra comparar a inclinação de produtos diferentes a olho, lado a lado.
+  const maxDeviation = Math.max(...prices.map(p => Math.abs(p - firstPrice))) || 1;
 
   const points = entries.map((e, i) => ({
     x: padX + stepX * i,
-    y: padTop + chartHeight - ((e.price - minPrice) / range) * chartHeight,
+    y: centerY - ((e.price - firstPrice) / maxDeviation) * (chartHeight / 2),
     price: e.price
   }));
 
@@ -1012,6 +1109,67 @@ window.selectBillType = function(el, type) {
   selectedBillType = type;
   el.parentElement.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
+};
+
+// Lançamento manual de um produto/compra comum (feira, farmácia, etc.) — salva
+// como cupom de verdade (StoreModule.saveReceipt), pra entrar no Histórico,
+// Análise e Painel junto com o resto, não só no Estoque.
+window.saveManualPurchase = function() {
+  const nameInput = document.getElementById('manual-name');
+  const priceInput = document.getElementById('manual-price');
+  const storeInput = document.getElementById('manual-store');
+
+  const name = (nameInput.value || '').trim();
+  const price = parseFloat(priceInput.value || 0);
+  const store = (storeInput.value || '').trim();
+
+  if (!name || !price) {
+    alert('Preencha o nome do produto e o valor pago.');
+    return;
+  }
+
+  const pad = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const emittedAt = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':00';
+
+  const receipt = {
+    chaveAcesso: 'manual-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+    storeName: store || 'Loja não identificada',
+    storeCnpj: '',
+    storeAddress: '',
+    emittedAt: emittedAt,
+    totalValue: price,
+    itemsAvailable: true,
+    source: 'manual',
+    items: [{
+      description: name,
+      code: '',
+      quantity: 1,
+      unit: 'un',
+      unitPrice: price,
+      totalPrice: price
+    }]
+  };
+
+  window.StoreModule.saveReceipt(receipt).then(result => {
+    if (result && result.duplicate) {
+      alert('Esse item já parece ter sido registrado.');
+      return;
+    }
+    window.addStockItem(name, 1, 'adicionado manualmente');
+    nameInput.value = '';
+    priceInput.value = '';
+    storeInput.value = '';
+    alert('Item registrado com sucesso!');
+    go('stock');
+  }).catch(err => {
+    if (err.message === 'not-authenticated') {
+      alert('Entre com sua conta Google para guardar o histórico de compras.');
+    } else {
+      console.error('Erro ao salvar item manual:', err);
+      alert('Houve um erro ao salvar o item.');
+    }
+  });
 };
 
 window.saveManualBill = function() {

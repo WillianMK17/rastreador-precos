@@ -188,6 +188,20 @@ window.StoreModule = {
     return window.db.collection('users').doc(uid).collection('receipts').doc(chaveAcesso).delete();
   },
 
+  // Categoria escolhida à mão pelo usuário — fica fixa (não é sobrescrita
+  // pela detecção automática nem pelo "Recalcular categorias").
+  updateReceiptCategory: function(chaveAcesso, category) {
+    if (!window.auth || !window.auth.currentUser) {
+      return Promise.reject(new Error('not-authenticated'));
+    }
+    if (!window.db) {
+      return Promise.reject(new Error('firestore-unavailable'));
+    }
+    const uid = window.auth.currentUser.uid;
+    return window.db.collection('users').doc(uid).collection('receipts').doc(chaveAcesso)
+      .update({ category: category, categoryManuallySet: true });
+  },
+
   recategorizeAllReceipts: function() {
     if (!window.auth || !window.auth.currentUser || !window.db) {
       return Promise.resolve(0);
@@ -199,6 +213,7 @@ window.StoreModule = {
       const updates = [];
       snapshot.docs.forEach(doc => {
         const data = doc.data();
+        if (data.categoryManuallySet) return; // não sobrescreve escolha manual do usuário
         const correctCategory = categorizeReceipt(data.storeName, data.items);
         if (data.category !== correctCategory) {
           updates.push(doc.ref.update({ category: correctCategory }));

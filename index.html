@@ -247,8 +247,8 @@
       <h1 class="big-title">Gasto Total & Histórico</h1>
       
       <div class="desktop-grid-2" style="margin-bottom:16px;">
-        <div class="receipt-card">
-          <div class="eyebrow" style="margin:0;">Total de Gastos Em Cupons</div>
+        <div class="receipt-card" style="cursor:pointer;" onclick="window.openCurrentMonthDetail()">
+          <div class="eyebrow" style="margin:0;">Total de Gastos Em Cupons Este Mês ›</div>
           <div class="total-num" id="home-total-spent-value">R$ 0,00</div>
           <div class="subtitle" style="margin:6px 0 0;" id="home-total-spent-subtitle">Nenhum cupom escaneado ainda nesta conta.</div>
         </div>
@@ -352,11 +352,14 @@
 
         <input type="file" accept="image/*" capture="environment" id="receipt-photo-input" style="display:none;" onchange="window.ScannerModule.scanReceiptPhoto(this.files[0])">
         <button class="btn-cta" style="max-width:320px; margin:8px auto 0; background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="document.getElementById('receipt-photo-input').click()">
-          🧾 Foto do cupom, fatura de luz/água/telefone
+          🧾 QR não leu? Foto do cupom inteiro
         </button>
+        <p class="subtitle" style="text-align:center; max-width:320px; margin-top:2px; font-size:11.5px;">
+          Funciona pra qualquer estabelecimento — mercado, farmácia, posto — e também pra fatura de luz/água/telefone.
+        </p>
 
-        <button style="background:none; border:none; color:var(--accent-gold); font-family:var(--font-mono); font-size:13px; cursor:pointer; text-decoration:underline; margin-top:8px;" onclick="go('manual')">
-          ou lançar manualmente →
+        <button class="btn-cta" style="max-width:320px; margin:8px auto 0; background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="go('manual')">
+          ✍️ Lançar manualmente
         </button>
 
         <div id="scan-message" class="auth-msg" style="max-width:320px;"></div>
@@ -391,13 +394,7 @@
         </div>
       </div>
 
-      <button class="btn-cta" style="max-width:500px; margin:0 auto;" onclick="
-        const n = document.getElementById('manual-name').value || 'Produto Novo';
-        const p = parseFloat(document.getElementById('manual-price').value || 0);
-        window.addStockItem(n, 1, 'adicionado manualmente');
-        alert('Item registrado com sucesso!');
-        go('stock');
-      ">Salvar no Histórico & Estoque</button>
+      <button class="btn-cta" style="max-width:500px; margin:0 auto;" onclick="window.saveManualPurchase()">Salvar no Histórico & Estoque</button>
 
       <div class="eyebrow" style="margin-top:24px;">Ou lance uma conta fixa</div>
       <div class="cat-chip-row" style="max-width:500px;">
@@ -571,6 +568,23 @@
       <button style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:11px; cursor:pointer; text-decoration:underline; margin-top:12px;" onclick="window.recalculateCategories()">
         🔄 Notou uma categoria errada? Recalcular categorias
       </button>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: CATEGORY DETAIL ===== -->
+    <div class="screen" id="category-detail">
+      <button style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; cursor:pointer; margin-bottom:12px;" onclick="go('month-detail')">← voltar às categorias</button>
+      <div class="eyebrow" id="category-detail-title">Categoria</div>
+      <h1 class="big-title">Cupons dessa categoria</h1>
+      <p class="subtitle">Categoria errada? Toque em outra abaixo do cupom pra mover, ou crie uma nova.</p>
+
+      <div id="category-detail-container">
+        <!-- Rendered dynamically via js/ui.js -->
+      </div>
 
       <div class="app-legal-footer">
         Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
