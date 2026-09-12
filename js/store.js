@@ -83,6 +83,15 @@ window.CATEGORY_RULES = [
   }
 ];
 
+// Precisa ficar idêntica, na mesma ordem, a EXPENSE_CATEGORIES_LIST em
+// api/parse-invoice-photo.js — os dois arquivos rodam em runtimes diferentes
+// (navegador vs serverless) e não podem importar um do outro.
+window.EXPENSE_CATEGORIES = [
+  'Mercado', 'Farmácia', 'Posto de Combustível', 'Bar/Restaurante', 'Contas Fixas',
+  'Pet', 'Vestuário', 'Assinaturas/Streaming', 'Delivery', 'Compras Online',
+  'Transporte/App', 'Outros'
+];
+
 function categorizeStore(storeName) {
   const name = (storeName || '').toUpperCase();
   const match = window.CATEGORY_RULES.find(rule => rule.pattern.test(name));
