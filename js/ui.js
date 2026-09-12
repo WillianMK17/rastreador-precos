@@ -33,7 +33,7 @@ window.setViewportMode = function(mode) {
 };
 
 // Navigation Function
-const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock','month-detail','category-detail','analysis'];
+const screens = ['landing','auth','home','consent','scan','manual','history','compare','list','list-result','stock','month-detail','category-detail','analysis','invoice-review'];
 
 window.go = function(id) {
   screens.forEach(s => {

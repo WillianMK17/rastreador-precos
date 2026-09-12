@@ -358,6 +358,11 @@
           Funciona pra qualquer estabelecimento — mercado, farmácia, posto — e também pra fatura de luz/água/telefone.
         </p>
 
+        <input type="file" accept="application/pdf,image/*" id="invoice-file-input" style="display:none;" onchange="window.startInvoiceImport(this.files[0]); this.value='';">
+        <button class="btn-cta" style="max-width:320px; margin:8px auto 0; background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="document.getElementById('invoice-file-input').click()">
+          💳 Importar fatura do cartão (PDF ou foto)
+        </button>
+
         <button class="btn-cta" style="max-width:320px; margin:8px auto 0; background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="go('manual')">
           ✍️ Lançar manualmente
         </button>
@@ -421,6 +426,21 @@
       <button class="btn-cta" style="max-width:500px; margin:0 auto; background:transparent; border:1px solid var(--card-border); color:var(--text-main);" onclick="window.saveManualBill()">
         Salvar Conta
       </button>
+
+      <div class="app-legal-footer">
+        Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>
+        © 2026 AugeFW. Todos os direitos reservados.
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: INVOICE REVIEW ===== -->
+    <div class="screen" id="invoice-review">
+      <button style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; cursor:pointer; margin-bottom:12px;" onclick="go('scan')">← voltar ao scanner</button>
+      <div class="eyebrow">Revisar Fatura</div>
+      <h1 class="big-title">Confira os lançamentos</h1>
+      <p class="subtitle">Desmarque o que não for despesa, ajuste categorias e confirme prováveis duplicatas antes de importar.</p>
+
+      <div id="invoice-review-container" style="max-width:500px; margin:0 auto;"></div>
 
       <div class="app-legal-footer">
         Desenvolvido por <a href="https://augefw.com" target="_blank" rel="noopener">augefw.com</a><br>

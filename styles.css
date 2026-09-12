@@ -1011,6 +1011,23 @@ input[type="date"] {
   font-weight: 700;
 }
 
+.invoice-category-select {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: var(--font-main);
+  font-size: 13px;
+  color-scheme: dark;
+}
+
+[data-theme="light"] .invoice-category-select {
+  color-scheme: light;
+}
+
 .list-row input[type="checkbox"] {
   width: 18px;
   height: 18px;
