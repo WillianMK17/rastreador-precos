@@ -287,10 +287,12 @@ function renderMarketComparison() {
               return `
               <div class="compare-bar-row">
                 <div class="compare-bar-label">${j === 0 ? '<span class="badge-best">MAIS BARATO</span> ' : ''}${s.storeName || 'Loja não identificada'}</div>
-                <div class="compare-bar-track">
-                  <div class="compare-bar-fill${j === 0 ? ' best' : ''}" style="width:${pct}%"></div>
+                <div class="compare-bar-line">
+                  <div class="compare-bar-track">
+                    <div class="compare-bar-fill${j === 0 ? ' best' : ''}" style="width:${pct}%"></div>
+                  </div>
+                  <div class="compare-bar-value">${formatBRL(s.unitPrice)}</div>
                 </div>
-                <div class="compare-bar-value">${formatBRL(s.unitPrice)}</div>
               </div>
             `;
             }).join('')}
@@ -674,10 +676,12 @@ function renderMonthDetail() {
           return `
           <div class="compare-bar-row" style="cursor:pointer;" data-category="${escapeAttr(category)}" onclick="window.openCategoryDetail(${year},${month},this.dataset.category)">
             <div class="compare-bar-label">${escapeHtml(category)} ›</div>
-            <div class="compare-bar-track">
-              <div class="compare-bar-fill${i === 0 ? ' best' : ''}" style="width:${pct}%"></div>
+            <div class="compare-bar-line">
+              <div class="compare-bar-track">
+                <div class="compare-bar-fill${i === 0 ? ' best' : ''}" style="width:${pct}%"></div>
+              </div>
+              <div class="compare-bar-value">${formatBRL(value)}</div>
             </div>
-            <div class="compare-bar-value">${formatBRL(value)}</div>
           </div>
         `;
         }).join('')}
