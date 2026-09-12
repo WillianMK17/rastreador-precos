@@ -131,6 +131,62 @@ function categorizeReceipt(storeName, items) {
   return categorizeItems(items) || storeCategory;
 }
 
+// Hash não-criptográfico (djb2) só pra virar um sufixo curto e determinístico
+// de chaveAcesso — o mesmo texto de entrada sempre produz o mesmo hash, o que
+// é o que evita duplicar um lançamento de fatura reimportado.
+function hashString(text) {
+  let hash = 5381;
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) + hash + text.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function parseDateToTimestamp(ddmmyyyy) {
+  const m = (ddmmyyyy || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return null;
+  const [, dd, mm, yyyy] = m;
+  return new Date(Number(yyyy), Number(mm) - 1, Number(dd)).getTime();
+}
+
+function computeInvoiceChaveAcesso(cardName, description, date, value) {
+  return 'fatura-' + hashString(cardName + '|' + description + '|' + date + '|' + value);
+}
+
+function computeInstallmentGroupId(cardName, description, value, installmentTotal) {
+  return 'parcela-' + hashString(cardName + '|' + description + '|' + value + '|' + installmentTotal);
+}
+
+// mês da fatura + monthOffset meses (0 = mesmo mês; o overflow de mês do
+// próprio Date cuida da virada de ano, ex: mês 12 + 2 -> fevereiro do ano seguinte)
+function computeInstallmentEmittedAt(invoiceDateStr, monthOffset) {
+  const m = (invoiceDateStr || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return null;
+  const [, dd, mm, yyyy] = m;
+  const base = new Date(Number(yyyy), Number(mm) - 1 + monthOffset, Number(dd));
+  const pad = n => String(n).padStart(2, '0');
+  return pad(base.getDate()) + '/' + pad(base.getMonth() + 1) + '/' + base.getFullYear() + ' 12:00:00';
+}
+
+// Candidato a duplicata: um recibo já existente (não vindo de fatura) com
+// valor quase igual (tolerância de 2 centavos, por arredondamento) e data
+// dentro de 5 dias do lançamento da fatura. Só sugere — nunca decide sozinho.
+function findDuplicateReceiptCandidate(transaction, receipts) {
+  const transactionTimestamp = parseDateToTimestamp(transaction.date);
+  if (transactionTimestamp === null) return null;
+  const fiveDaysMs = 5 * 24 * 60 * 60 * 1000;
+  const valueTolerance = 0.02;
+
+  return receipts.find(function(receipt) {
+    if (receipt.source === 'invoice') return false;
+    const receiptTimestamp = parseDateToTimestamp(receipt.emittedAt);
+    if (receiptTimestamp === null) return false;
+    const valueMatches = Math.abs((receipt.totalValue || 0) - transaction.value) <= valueTolerance;
+    const dateMatches = Math.abs(receiptTimestamp - transactionTimestamp) <= fiveDaysMs;
+    return valueMatches && dateMatches;
+  }) || null;
+}
+
 function normalizeProductName(text) {
   const combiningDiacritics = new RegExp('[̀-ͯ]', 'g');
   return (text || '')
