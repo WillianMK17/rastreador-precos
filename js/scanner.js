@@ -142,6 +142,38 @@ window.ScannerModule = {
     }
   },
 
+  scanInvoiceFile: async function(file, cardName) {
+    if (!file) return [];
+
+    await this.stopScanner();
+
+    let fileBase64;
+    try {
+      fileBase64 = await this._fileToBase64(file);
+    } catch (err) {
+      console.error("Erro ao ler o arquivo da fatura:", err);
+      throw new Error('file-read-failed');
+    }
+
+    let apiResult;
+    try {
+      const response = await fetch('/api/parse-invoice-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64, mimeType: file.type || 'application/pdf' })
+      });
+      apiResult = await response.json();
+    } catch (err) {
+      console.error("Erro ao enviar fatura para leitura:", err);
+      throw new Error('invoice-request-failed');
+    }
+
+    if (!apiResult || apiResult.ok !== true) {
+      return [];
+    }
+    return apiResult.transactions;
+  },
+
   _fileToBase64: function(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
