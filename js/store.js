@@ -267,6 +267,105 @@ window.StoreModule = {
       .update({ category: category, categoryManuallySet: true });
   },
 
+  importInvoiceTransactions: function(transactions, cardName) {
+    if (!window.auth || !window.auth.currentUser) {
+      return Promise.reject(new Error('not-authenticated'));
+    }
+    if (!window.db) {
+      return Promise.reject(new Error('firestore-unavailable'));
+    }
+    const uid = window.auth.currentUser.uid;
+    const receiptsRef = window.db.collection('users').doc(uid).collection('receipts');
+
+    function makeItems(description, value) {
+      return [{ description: description, code: '', quantity: 1, unit: 'un', unitPrice: value, totalPrice: value }]
+        .map(item => Object.assign({}, item, { matchKey: normalizeProductName(item.description) }));
+    }
+
+    const docsToCreate = [];
+    transactions.forEach(function(transaction) {
+      const installmentTotal = transaction.installmentTotal || 1;
+      const installmentCurrent = transaction.installmentCurrent || 1;
+      const category = transaction.category || 'Outros';
+
+      if (installmentTotal <= 1) {
+        docsToCreate.push({
+          chaveAcesso: computeInvoiceChaveAcesso(cardName, transaction.description, transaction.date, transaction.value),
+          data: {
+            storeName: transaction.description,
+            storeCnpj: '',
+            storeAddress: '',
+            emittedAt: transaction.date + ' 12:00:00',
+            totalValue: transaction.value,
+            itemsAvailable: true,
+            source: 'invoice',
+            cardName: cardName,
+            category: category,
+            categoryManuallySet: true,
+            items: makeItems(transaction.description, transaction.value)
+          }
+        });
+      } else {
+        const installmentGroupId = computeInstallmentGroupId(cardName, transaction.description, transaction.value, installmentTotal);
+        for (let n = installmentCurrent; n <= installmentTotal; n++) {
+          docsToCreate.push({
+            chaveAcesso: installmentGroupId + '-p' + n,
+            data: {
+              storeName: transaction.description + ' (' + n + '/' + installmentTotal + ')',
+              storeCnpj: '',
+              storeAddress: '',
+              emittedAt: computeInstallmentEmittedAt(transaction.date, n - installmentCurrent),
+              totalValue: transaction.value,
+              itemsAvailable: true,
+              source: 'invoice',
+              cardName: cardName,
+              category: category,
+              categoryManuallySet: true,
+              installmentGroupId: installmentGroupId,
+              installmentIndex: n,
+              installmentTotal: installmentTotal,
+              items: makeItems(transaction.description, transaction.value)
+            }
+          });
+        }
+      }
+    });
+
+    const cancelIds = transactions
+      .filter(function(t) { return t.cancelDuplicateReceiptId; })
+      .map(function(t) { return t.cancelDuplicateReceiptId; });
+
+    // Firestore batches só fazem escrita — a checagem de "já existe" (o que
+    // evita duplicar fatura reimportada ou parcela já lançada) precisa ser
+    // lida antes de montar o batch.
+    return Promise.all(docsToCreate.map(function(entry) {
+      return receiptsRef.doc(entry.chaveAcesso).get().then(function(snapshot) {
+        return { entry: entry, exists: snapshot.exists };
+      });
+    })).then(function(checked) {
+      const batch = window.db.batch();
+      let createdCount = 0;
+
+      checked.forEach(function(checkedEntry) {
+        if (checkedEntry.exists) return;
+        batch.set(receiptsRef.doc(checkedEntry.entry.chaveAcesso), Object.assign({}, checkedEntry.entry.data, {
+          city: window.AppState.profileCity || '',
+          citySlug: window.AppState.profileCitySlug || '',
+          scannedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }));
+        createdCount++;
+      });
+
+      cancelIds.forEach(function(id) {
+        batch.delete(receiptsRef.doc(id));
+      });
+
+      return batch.commit().then(function() {
+        return { created: createdCount, canceled: cancelIds.length, skipped: docsToCreate.length - createdCount };
+      });
+    });
+  },
+
   recategorizeAllReceipts: function() {
     if (!window.auth || !window.auth.currentUser || !window.db) {
       return Promise.resolve(0);
