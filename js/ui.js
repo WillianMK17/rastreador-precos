@@ -83,6 +83,9 @@ window.go = function(id) {
   } else if (id === 'list-result') {
     renderListResult();
     if (window.ScannerModule) window.ScannerModule.stopScanner();
+  } else if (id === 'invoice-review') {
+    renderInvoiceReview();
+    if (window.ScannerModule) window.ScannerModule.stopScanner();
   } else {
     if (window.ScannerModule) window.ScannerModule.stopScanner();
   }
@@ -759,6 +762,135 @@ window.editReceiptCategory = function(chaveAcesso, category) {
     } else {
       console.error('Erro ao atualizar categoria:', err);
       alert('Não foi possível atualizar a categoria.');
+    }
+  });
+};
+
+window.startInvoiceImport = function(file) {
+  const cardName = prompt('Nome do cartão (ex: Nubank, Itaú):');
+  if (!cardName || !cardName.trim()) return;
+
+  showScanMessage('Fatura recebida! Lendo os lançamentos com IA...', 'success');
+
+  window.ScannerModule.scanInvoiceFile(file, cardName.trim()).then(function(transactions) {
+    if (!transactions || transactions.length === 0) {
+      showScanMessage('Não conseguimos identificar lançamentos nessa fatura. Tente uma foto/PDF mais nítido.', 'error');
+      return;
+    }
+    return window.StoreModule.loadReceipts().then(function(receipts) {
+      window.PendingInvoiceImport = {
+        cardName: cardName.trim(),
+        rows: transactions.map(function(t, i) {
+          const duplicate = t.type === 'purchase' ? findDuplicateReceiptCandidate(t, receipts) : null;
+          return {
+            id: i,
+            date: t.date,
+            description: t.description,
+            value: t.value,
+            type: t.type,
+            installmentCurrent: t.installmentCurrent,
+            installmentTotal: t.installmentTotal,
+            category: t.suggestedCategory || 'Outros',
+            included: t.type === 'purchase' || t.type === 'fee',
+            duplicateReceiptId: duplicate ? duplicate.id : null,
+            duplicateReceiptLabel: duplicate ? ((duplicate.storeName || 'recibo') + ' em ' + (duplicate.emittedAt || '').slice(0, 10)) : null,
+            cancelDuplicate: !!duplicate
+          };
+        })
+      };
+      window.go('invoice-review');
+    });
+  }).catch(function(err) {
+    console.error('Erro ao ler fatura:', err);
+    showScanMessage('Não conseguimos ler essa fatura agora. Tente de novo.', 'error');
+  });
+};
+
+function renderInvoiceReview() {
+  const container = document.getElementById('invoice-review-container');
+  const pending = window.PendingInvoiceImport;
+  if (!container || !pending) return;
+
+  container.innerHTML = `
+    <div class="item-meta" style="margin-bottom:10px;">Cartão: <b>${escapeHtml(pending.cardName)}</b> · ${pending.rows.length} lançamentos encontrados</div>
+    ${pending.rows.map(function(row) {
+      return `
+      <div class="receipt-card" style="margin-bottom:10px;">
+        <div class="item-row">
+          <label style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+            <input type="checkbox" ${row.included ? 'checked' : ''} onchange="window.toggleInvoiceRowIncluded(${row.id}, this.checked)">
+            <div style="min-width:0;">
+              <div class="item-name">${escapeHtml(row.description)}${row.installmentTotal ? ' <span style="opacity:.6;">(' + row.installmentCurrent + '/' + row.installmentTotal + ')</span>' : ''}</div>
+              <div class="item-meta">${escapeHtml(row.date)}</div>
+            </div>
+          </label>
+          <div style="font-family:var(--font-mono); font-weight:700; font-size:15px; flex-shrink:0;">${formatBRL(row.value)}</div>
+        </div>
+        <select class="invoice-category-select" onchange="window.setInvoiceRowCategory(${row.id}, this.value)">
+          ${window.EXPENSE_CATEGORIES.map(function(cat) {
+            return '<option value="' + escapeAttr(cat) + '"' + (cat === row.category ? ' selected' : '') + '>' + escapeHtml(cat) + '</option>';
+          }).join('')}
+        </select>
+        ${row.duplicateReceiptId ? `
+        <label class="item-meta" style="display:flex; align-items:center; gap:8px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--card-border);">
+          <input type="checkbox" ${row.cancelDuplicate ? 'checked' : ''} onchange="window.toggleInvoiceRowCancelDuplicate(${row.id}, this.checked)">
+          ⚠️ possível duplicata de "${escapeHtml(row.duplicateReceiptLabel)}" — cancelar o lançamento individual
+        </label>
+        ` : ''}
+      </div>
+    `;
+    }).join('')}
+    <button class="btn-cta" style="max-width:500px; margin:16px auto 0;" onclick="window.confirmInvoiceImport()">Confirmar importação</button>
+  `;
+}
+
+window.toggleInvoiceRowIncluded = function(id, checked) {
+  const row = window.PendingInvoiceImport.rows.find(function(r) { return r.id === id; });
+  if (row) row.included = checked;
+};
+
+window.setInvoiceRowCategory = function(id, category) {
+  const row = window.PendingInvoiceImport.rows.find(function(r) { return r.id === id; });
+  if (row) row.category = category;
+};
+
+window.toggleInvoiceRowCancelDuplicate = function(id, checked) {
+  const row = window.PendingInvoiceImport.rows.find(function(r) { return r.id === id; });
+  if (row) row.cancelDuplicate = checked;
+};
+
+window.confirmInvoiceImport = function() {
+  const pending = window.PendingInvoiceImport;
+  if (!pending) return;
+
+  const included = pending.rows.filter(function(r) { return r.included; });
+  if (included.length === 0) {
+    alert('Marque ao menos um lançamento para importar.');
+    return;
+  }
+
+  const transactions = included.map(function(r) {
+    return {
+      date: r.date,
+      description: r.description,
+      value: r.value,
+      installmentCurrent: r.installmentCurrent,
+      installmentTotal: r.installmentTotal,
+      category: r.category,
+      cancelDuplicateReceiptId: r.cancelDuplicate ? r.duplicateReceiptId : null
+    };
+  });
+
+  window.StoreModule.importInvoiceTransactions(transactions, pending.cardName).then(function(result) {
+    window.PendingInvoiceImport = null;
+    alert('Fatura importada: ' + result.created + ' lançamento(s) novo(s), ' + result.canceled + ' recibo(s) cancelado(s), ' + result.skipped + ' já existiam.');
+    window.go('history');
+  }).catch(function(err) {
+    if (err.message === 'not-authenticated') {
+      alert('Entre com sua conta Google para importar a fatura.');
+    } else {
+      console.error('Erro ao importar fatura:', err);
+      alert('Houve um erro ao importar a fatura.');
     }
   });
 };
